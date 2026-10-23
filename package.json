@@ -1,0 +1,13 @@
+{
+  "name": "mossroom-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A browser-local audio editor with a retro brown and green mixing console.",
+  "scripts": {
+    "test": "node tests/audio-core.test.cjs && node tests/mixer.test.cjs && node tests/timeline.test.cjs",
+    "preview": "python3 -m http.server 8765 --bind 127.0.0.1 --directory dist"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
