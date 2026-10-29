@@ -17,12 +17,12 @@ gh auth login --hostname github.com --git-protocol https --web
 按终端提示自行完成授权，CLI 将凭据保存到本机支持的凭据存储。随后首次启用 Pages：
 
 ```sh
-gh api --method POST repos/junlinr-cell/MOSSROOM-/pages -f build_type=workflow
-gh workflow run pages.yml --repo junlinr-cell/MOSSROOM- --ref main
-gh run list --repo junlinr-cell/MOSSROOM- --workflow pages.yml
+gh api --method POST repos/imjulienren/MOSSROOM-/pages -f build_type=workflow
+gh workflow run pages.yml --repo imjulienren/MOSSROOM- --ref main
+gh run list --repo imjulienren/MOSSROOM- --workflow pages.yml
 ```
 
-如果 Pages 已经启用，先用 `gh api repos/junlinr-cell/MOSSROOM-/pages` 检查状态；需要切换来源时，将上面的 POST 改为 PUT。等待 Actions 的部署步骤成功后，通过 Pages 接口返回的 `html_url` 访问网页，不要仅凭源码上传成功判断部署成功。
+如果 Pages 已经启用，先用 `gh api repos/imjulienren/MOSSROOM-/pages` 检查状态；需要切换来源时，将上面的 POST 改为 PUT。等待 Actions 的部署步骤成功后，通过 Pages 接口返回的 `html_url` 访问网页，不要仅凭源码上传成功判断部署成功。
 
 ## 其他静态托管
 
