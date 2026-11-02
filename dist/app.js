@@ -9,7 +9,7 @@
   let processed = null, exporting = false, downloadUrl = null, dragDepth = 0, timelineJob = null;
   let monitorNode=null,monitorLevel=.8,auditionOriginal=false,mixResumeTimer=0,clipLatch=0,fxBefore=null;
   const audioConstructor = window.AudioContext || window.webkitAudioContext;
-  const settings = t => ({start:t.start,end:t.end,gain:t.gain,fadeIn:t.fadeIn,fadeOut:t.fadeOut,normalize:t.normalize,fx:{...MixerCore.defaults(),...t.fx}});
+  const settings = t => ({start:t.start,end:t.end,volume:t.volume,fadeIn:t.fadeIn,fadeOut:t.fadeOut,normalize:t.normalize,fx:{...MixerCore.defaults(),...t.fx}});
   const snapshot = t => ({...settings(t),buffer:t.buffer,cursor:t.cursor,timelineEdited:t.timelineEdited});
   const equals = (a,b) => a.buffer===b.buffer && JSON.stringify(settings(a))===JSON.stringify(settings(b));
   const icon = name => { const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); const use = document.createElementNS(svg.namespaceURI,'use'); use.setAttribute('href','#i-'+name); svg.append(use); return svg; };
@@ -20,7 +20,7 @@
   function pruneHistory(){while(memoryUsage()>384*1024*1024){let removed=false;for(const t of tracks){if(t.history.length>(t===current?1:0)){t.history.shift();removed=true;break;}if(t.future.length){t.future.shift();removed=true;break;}}if(!removed)break;}}
   function remember(before) { if (!current || equals(before,snapshot(current))) return; current.history.push(before); if(current.history.length>60)current.history.shift(); current.future=[]; pruneHistory(); }
   function minimum(t=current) { return Math.min(.001,t.buffer.duration); }
-  function clean(t) { t.start=clamp(Math.round(t.start*1000)/1000,0,t.buffer.duration-minimum(t)); t.end=clamp(Math.round(t.end*1000)/1000,t.start+minimum(t),t.buffer.duration); t.fadeIn=clamp(t.fadeIn,0,Math.min(10,t.end-t.start)); t.fadeOut=clamp(t.fadeOut,0,Math.min(10,t.end-t.start)); t.gain=clamp(t.gain,-24,12);t.cursor=clamp(t.cursor,0,t.buffer.duration); }
+  function clean(t) { t.start=clamp(Math.round(t.start*1000)/1000,0,t.buffer.duration-minimum(t)); t.end=clamp(Math.round(t.end*1000)/1000,t.start+minimum(t),t.buffer.duration); t.fadeIn=clamp(t.fadeIn,0,Math.min(10,t.end-t.start)); t.fadeOut=clamp(t.fadeOut,0,Math.min(10,t.end-t.start)); t.volume=clamp(t.volume,0,4);t.cursor=clamp(t.cursor,0,t.buffer.duration); }
   function edit(update,record=true) { if(!current)return; pause(); const before=snapshot(current); update(current); clean(current); if(record)remember(before); processed=null; render(); }
   function liveEdit(update,record=true){const resume=playing||!!mixResumeTimer;edit(update,record);if(resume)mixResumeTimer=setTimeout(()=>{mixResumeTimer=0;play();},120);}
   const presets={neutral:MixerCore.defaults(),voice:{...MixerCore.defaults(),filterOn:true,hp:90,lp:16000,eqOn:true,low:-2,mid:2,midFreq:2500,high:2.5,compOn:true,threshold:-20,ratio:3,attack:8,release:130,gateOn:true,gateThreshold:-54,limiterOn:true},warm:{...MixerCore.defaults(),filterOn:true,hp:35,lp:14000,eqOn:true,low:2,mid:-1,high:-3,compOn:true,threshold:-16,ratio:2,attack:25,release:180,reverbOn:true,reverbMix:6,reverbDecay:.5,limiterOn:true},podcast:{...MixerCore.defaults(),filterOn:true,hp:80,lp:12000,eqOn:true,mid:2,high:1,compOn:true,threshold:-24,ratio:4,makeup:3,gateOn:true,gateThreshold:-48,mono:true,limiterOn:true},music:{...MixerCore.defaults(),eqOn:true,low:2,high:1.5,compOn:true,threshold:-18,ratio:2,attack:20,release:180,width:110,limiterOn:true}};
@@ -33,7 +33,7 @@
   }
   function makeTrack(name,buffer,size=0,demo=false) {
     const {channels,peak,peaks}=analyzeBuffer(buffer);
-    const track={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name:name.replace(/\.(mp3|wav|m4a|aac|flac|aiff?|ogg|webm|opus)$/i,''),fullName:name,buffer,channels,size,demo,peak,peaks,start:demo?3.2:0,end:demo?13.6:buffer.duration,cursor:demo?3.2:0,gain:0,fadeIn:0,fadeOut:0,normalize:false,fx:MixerCore.defaults(),timelineEdited:false,history:[],future:[]};
+    const track={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),name:name.replace(/\.(mp3|wav|m4a|aac|flac|aiff?|ogg|webm|opus)$/i,''),fullName:name,buffer,channels,size,demo,peak,peaks,start:demo?3.2:0,end:demo?13.6:buffer.duration,cursor:demo?3.2:0,volume:1,fadeIn:0,fadeOut:0,normalize:false,fx:MixerCore.defaults(),timelineEdited:false,history:[],future:[]};
     return track;
   }
   function createDemo() {
@@ -79,10 +79,10 @@
     $('selection-time').textContent=(t.end-t.start).toFixed(3)+' s';
     $('selection').style.left=(t.start/duration*100)+'%';$('selection').style.width=((t.end-t.start)/duration*100)+'%';
     for(const endpoint of ['start','end']){const handle=$('handle-'+endpoint);handle.setAttribute('aria-valuemax',String(duration));handle.setAttribute('aria-valuenow',t[endpoint].toFixed(3));handle.setAttribute('aria-valuetext',formatTime(t[endpoint]));}
-    $('gain').value=t.gain;$('gain-value').value=(t.gain>0?'+':'')+t.gain.toFixed(1)+' dB';const percent=(t.gain+24)/36*100;$('gain').style.background=`linear-gradient(to right,#b6cc7d ${percent}%,#252a1d ${percent}%)`;
+    $('gain').value=Math.round(t.volume*100);$('gain-value').value=Math.round(t.volume*100)+'%';const percent=t.volume/4*100;$('gain').style.background=`linear-gradient(to right,#b6cc7d ${percent}%,#252a1d ${percent}%)`;
     $('fade-in').value=Number(t.fadeIn.toFixed(3));$('fade-out').value=Number(t.fadeOut.toFixed(3));$('fade-in').max=$('fade-out').max=Math.min(10,t.end-t.start);$('normalize').checked=t.normalize;
     const overload=!!processed?.stats?.clippedSamples;
-    $('peak-hint').classList.toggle('warning',overload);$('peak-hint').textContent=overload?'输出削波，请降低增益或开启限制器':'';
+    $('peak-hint').classList.toggle('warning',overload);$('peak-hint').textContent=overload?'输出削波，请降低音量或开启限制器':'';
     $('undo-btn').disabled=!t.history.length;$('redo-btn').disabled=!t.future.length;
     $('zoom-value').textContent=Math.round(zoom*100)+'%';$('zoom-out').disabled=zoom<=1;$('zoom-in').disabled=zoom>=8;
     renderTimeline();drawWave();renderPlayhead();renderMixer();updateMeters();
@@ -108,7 +108,7 @@
     for(let i=0;i<2;i++){const level=clamp((20*Math.log10(Math.max(1e-6,peaks[i]))+60)/60,0,1),el=$(i?'meter-right':'meter-left');el.style.height=level*100+'%';el.style.setProperty('--level',level);}
     $('meter-peak').value=db(live?Math.max(...peaks):stats?.peak||0);$('meter-rms').value=db(live?Math.sqrt(sum/Math.max(1,count)):stats?.rms||0);$('meter-gr').value=(stats?Math.max(stats.gainReductionDb||0,stats.limitedDb||0):0).toFixed(1);
     $('clip-reset').classList.toggle('clipped',clipLatch>0);$('clip-text').textContent=clipLatch?'削波 '+(clipLatch>999?'999+':clipLatch):'无削波';$('clip-reset').title=clipLatch+' 个样本超出 0 dB，点击清除记录';
-    $('peak-hint').classList.toggle('warning',!!stats?.clippedSamples);$('peak-hint').textContent=stats?.clippedSamples?'输出削波，请降低增益或开启限制器':'';
+    $('peak-hint').classList.toggle('warning',!!stats?.clippedSamples);$('peak-hint').textContent=stats?.clippedSamples?'输出削波，请降低音量或开启限制器':'';
   }
   function renderTimeline() {
     if(!current)return;
@@ -264,9 +264,9 @@
   $('speed').onchange=()=>{const resume=playing;pause();if(resume)play();};$('zoom-in').onclick=()=>setZoom(zoom*1.5);$('zoom-out').onclick=()=>setZoom(zoom/1.5);$('zoom-fit').onclick=()=>setZoom(1);
   $('undo-btn').onclick=()=>history('undo');$('redo-btn').onclick=()=>history('redo');$('start-input').onchange=()=>setTime('start');$('end-input').onchange=()=>setTime('end');
   for(const id of ['start-input','end-input'])$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.target.blur();}});
-  $('select-all').onclick=()=>edit(t=>{t.start=0;t.end=t.buffer.duration;t.cursor=0;});$('reset-selection').onclick=()=>{edit(t=>{t.start=0;t.end=t.buffer.duration;t.cursor=0;t.gain=0;t.fadeIn=0;t.fadeOut=0;t.normalize=false;});status('已重置选区、增益与淡入淡出');};
+  $('select-all').onclick=()=>edit(t=>{t.start=0;t.end=t.buffer.duration;t.cursor=0;});$('reset-selection').onclick=()=>{edit(t=>{t.start=0;t.end=t.buffer.duration;t.cursor=0;t.volume=1;t.fadeIn=0;t.fadeOut=0;t.normalize=false;});status('已重置选区、音量与淡入淡出');};
   let gainBefore=null;
-  $('gain').addEventListener('input',()=>{if(!current)return;if(!gainBefore)gainBefore=snapshot(current);liveEdit(t=>{t.gain=Number($('gain').value);},false);});
+  $('gain').addEventListener('input',()=>{if(!current)return;if(!gainBefore)gainBefore=snapshot(current);liveEdit(t=>{t.volume=Number($('gain').value)/100;},false);});
   $('gain').addEventListener('change',()=>{if(gainBefore){remember(gainBefore);gainBefore=null;render();}});
   for(const [id,key] of [['fade-in','fadeIn'],['fade-out','fadeOut']])$(id).onchange=()=>{const value=Number($(id).value);liveEdit(t=>t[key]=Number.isFinite(value)?value:0);};
   $('normalize').onchange=()=>liveEdit(t=>t.normalize=$('normalize').checked);
@@ -276,7 +276,7 @@
     if(input.type==='range'){input.oninput=()=>{if(!current)return;if(!fxBefore)fxBefore=snapshot(current);change(false);};input.onchange=()=>{if(fxBefore){remember(fxBefore);fxBefore=null;render();}};}else input.onchange=()=>change();
   }
   $('preset').onchange=()=>{const p=presets[$('preset').value];if(!p)return;auditionOriginal=false;liveEdit(t=>t.fx={...p});status('调音预设已应用');};
-  $('reset-mix').onclick=()=>{auditionOriginal=false;liveEdit(t=>{t.fx=MixerCore.defaults();t.gain=0;t.fadeIn=t.fadeOut=0;t.normalize=false;});status('调音已重置');};
+  $('reset-mix').onclick=()=>{auditionOriginal=false;liveEdit(t=>{t.fx=MixerCore.defaults();t.volume=1;t.fadeIn=t.fadeOut=0;t.normalize=false;});status('调音已重置');};
   $('bypass-btn').onclick=()=>{const resume=playing||!!mixResumeTimer;pause();auditionOriginal=!auditionOriginal;processed=null;renderMixer();if(resume)play();status(auditionOriginal?'正在对比原始选区':'已恢复调音试听');};
   $('monitor-volume').oninput=()=>{monitorLevel=Number($('monitor-volume').value)/100;$('monitor-value').value=Math.round(monitorLevel*100)+'%';if(monitorNode)monitorNode.gain.setTargetAtTime(monitorLevel,context().currentTime,.01);};
   $('clip-reset').onclick=()=>{clipLatch=0;updateMeters(playing);};

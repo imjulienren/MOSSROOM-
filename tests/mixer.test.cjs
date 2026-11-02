@@ -23,3 +23,13 @@ const bypass=run(stereo,{mono:true,eqOn:true,low:12},{bypassEffects:true,gain:12
 assert.equal(M.channelCount(2,{fx:{mono:true}}),1);assert.equal(M.channelCount(1,{fx:{pan:50}}),2);
 const clip=run([tone(440,.8)],{},{gain:12});assert(clip.stats.clippedSamples>0);assert.equal(clip.stats.peak,1);
 console.log('Mixer checks passed: filters, EQ, compression, gate, reverb, delay, stereo, normalization, bypass, clipping and limiter edge cases.');
+
+// Output volume is a linear multiplier, including silence and normalization.
+const volumeInput=new Float32Array([.25,-.5]);
+for(const volume of [0,.6,1,1.5]){
+  const result=run([volumeInput],{},{volume});
+  assert(Math.abs(result.channels[0][0]-.25*volume)<1e-6);
+  assert(Math.abs(result.channels[0][1]+.5*volume)<1e-6);
+}
+const normalizedVolume=run([volumeInput],{},{normalize:true,volume:.6});
+assert(Math.abs(normalizedVolume.stats.peak-amp(-1)*.6)<1e-6);
