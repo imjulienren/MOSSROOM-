@@ -33,3 +33,13 @@ for(const volume of [0,.6,1,1.5]){
 }
 const normalizedVolume=run([volumeInput],{},{normalize:true,volume:.6});
 assert(Math.abs(normalizedVolume.stats.peak-amp(-1)*.6)<1e-6);
+
+// The simplified panel can go from neutral to hard compression and saturation.
+const strongCompression=run([tone(440,.8)],{compression:100});
+assert(strongCompression.stats.gainReductionDb>35);
+const driven=run([raw],{drive:36}).channels[0];
+assert(driven.every(Number.isFinite));
+assert(rms(driven)>rms(raw)*8);
+const fullReverb=run([impulse],{reverbOn:true,reverbMix:100,reverbDecay:8}).channels[0];
+assert.equal(fullReverb[0],0);
+assert(fullReverb.slice(sr/2).some(sample=>Math.abs(sample)>1e-4));

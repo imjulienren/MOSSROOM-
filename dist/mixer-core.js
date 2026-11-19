@@ -4,7 +4,7 @@
     const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
     const db=v=>20*Math.log10(Math.max(1e-12,v));
     const amp=v=>Math.pow(10,v/20);
-    function defaults(){return {filterOn:false,hp:80,lp:18000,eqOn:false,low:0,mid:0,high:0,midFreq:1800,compOn:false,threshold:-18,ratio:3,attack:10,release:150,makeup:0,gateOn:false,gateThreshold:-50,gateRelease:100,reverbOn:false,reverbMix:12,reverbDecay:.8,delayOn:false,delayMix:15,delayTime:220,delayFeedback:25,pan:0,width:100,mono:false,limiterOn:false,ceiling:-1};}
+    function defaults(){return {filterOn:false,hp:80,lp:18000,eqOn:false,low:0,mid:0,high:0,midFreq:1800,compression:0,drive:0,compOn:false,threshold:-18,ratio:3,attack:10,release:150,makeup:0,gateOn:false,gateThreshold:-50,gateRelease:100,reverbOn:false,reverbMix:0,reverbDecay:1.2,delayOn:false,delayMix:15,delayTime:220,delayFeedback:25,pan:0,width:100,mono:false,limiterOn:false,ceiling:-1};}
     // RBJ biquad coefficients, following the W3C Audio EQ Cookbook.
     function coefficients(type,frequency,gain,sampleRate,q=Math.SQRT1_2){
       const w=2*Math.PI*clamp(frequency,10,sampleRate*.47)/sampleRate,c=Math.cos(w),s=Math.sin(w),A=Math.pow(10,gain/40),alpha=s/(2*q),beta=2*Math.sqrt(A)*s/Math.sqrt(2);
@@ -28,8 +28,69 @@
       if(f.filterOn){filter(channels,coefficients('highpass',f.hp,0,sampleRate));filter(channels,coefficients('lowpass',f.lp,0,sampleRate));}
       if(f.eqOn){if(f.low)filter(channels,coefficients('low',120,f.low,sampleRate));if(f.mid)filter(channels,coefficients('peak',f.midFreq,f.mid,sampleRate,.85));if(f.high)filter(channels,coefficients('high',8000,f.high,sampleRate));}
       if(f.gateOn){let envelope=0,gain=0,hold=0;const threshold=amp(f.gateThreshold),release=Math.exp(-1/(sampleRate*Math.max(.01,f.gateRelease/1000))),attack=Math.exp(-1/(sampleRate*.001)),decay=Math.exp(-1/(sampleRate*.008));for(let i=0;i<frames;i++){let p=0;for(const c of channels)p=Math.max(p,Math.abs(c[i]));envelope=Math.max(p,envelope*decay);if(envelope>threshold)hold=Math.round(sampleRate*.025);else if(hold>0)hold--;const target=hold>0?1:0,coefficient=target>gain?attack:release;gain=target+(gain-target)*coefficient;for(const c of channels)c[i]*=gain;}}
-      if(f.compOn){let envelope=0;const attack=Math.exp(-1/(sampleRate*Math.max(.0001,f.attack/1000))),release=Math.exp(-1/(sampleRate*Math.max(.01,f.release/1000))),ratio=clamp(f.ratio,1,20),makeup=amp(f.makeup),knee=6;for(let i=0;i<frames;i++){let p=0;for(const c of channels)p=Math.max(p,Math.abs(c[i]));const coeff=p>envelope?attack:release;envelope=p+(envelope-p)*coeff;const over=db(envelope)-f.threshold;let reduction=0;if(over>knee/2)reduction=over*(1-1/ratio);else if(over>-knee/2)reduction=(1-1/ratio)*(over+knee/2)**2/(2*knee);gainReductionDb=Math.max(gainReductionDb,reduction);const gain=amp(-reduction)*makeup;for(const c of channels)c[i]*=gain;}}
-      if(f.reverbOn&&f.reverbMix>0){for(let ch=0;ch<channels.length;ch++){const data=channels[ch],mix=clamp(f.reverbMix/100,0,.6),times=[.0297,.0371,.0411,.0437],lines=times.map(t=>new Float32Array(Math.max(1,Math.round((t+ch*.00073)*sampleRate)))),feedback=lines.map(l=>Math.pow(.001,l.length/(sampleRate*Math.max(.1,f.reverbDecay)))),damped=new Float64Array(4),positions=new Int32Array(4),ap=new Float32Array(Math.max(1,Math.round(sampleRate*(.005+ch*.0003))));let apIndex=0;for(let i=0;i<frames;i++){const dry=data[i];let wet=0;for(let j=0;j<4;j++){const value=lines[j][positions[j]];damped[j]=value*.65+damped[j]*.35;lines[j][positions[j]]=dry+damped[j]*feedback[j];positions[j]=(positions[j]+1)%lines[j].length;wet+=value*.25;}const delayed=ap[apIndex],diff=wet+delayed*.5;ap[apIndex]=diff;apIndex=(apIndex+1)%ap.length;wet=delayed-diff*.5;data[i]=dry+wet*mix;}}}
+      const compression=clamp(f.compression/100,0,1);
+      if(f.compOn||compression>0){
+        const threshold=compression>0?-10-44*compression:f.threshold;
+        const ratio=compression>0?1+19*compression:clamp(f.ratio,1,20);
+        const attackMs=compression>0?15-14.5*compression:f.attack;
+        const attack=Math.exp(-1/(sampleRate*Math.max(.0001,attackMs/1000)));
+        const release=Math.exp(-1/(sampleRate*Math.max(.01,f.release/1000)));
+        const makeup=amp(compression>0?Math.min(18,(-threshold-10)*(1-1/ratio)*.5):f.makeup);
+        const knee=6;
+        let envelope=0;
+        for(let i=0;i<frames;i++){
+          let peak=0;
+          for(const data of channels)peak=Math.max(peak,Math.abs(data[i]));
+          const coefficient=peak>envelope?attack:release;
+          envelope=peak+(envelope-peak)*coefficient;
+          const over=db(envelope)-threshold;
+          let reduction=0;
+          if(over>knee/2)reduction=over*(1-1/ratio);
+          else if(over>-knee/2)reduction=(1-1/ratio)*(over+knee/2)**2/(2*knee);
+          gainReductionDb=Math.max(gainReductionDb,reduction);
+          const gain=amp(-reduction)*makeup;
+          for(const data of channels)data[i]*=gain;
+        }
+      }
+      if(f.drive>0){
+        const drive=amp(clamp(f.drive,0,36))-1;
+        const amount=clamp(f.drive/6,0,1);
+        for(const data of channels)for(let i=0;i<frames;i++){
+          const sample=data[i];
+          const saturated=Math.tanh(sample*drive)/Math.tanh(drive);
+          data[i]=sample+(saturated-sample)*amount;
+        }
+      }
+      if(f.reverbOn&&f.reverbMix>0){
+        const mix=clamp(f.reverbMix/100,0,1);
+        const decay=clamp(f.reverbDecay,.1,8);
+        const times=[.0117,.0197,.0297,.0371,.0411,.0437];
+        for(let ch=0;ch<channels.length;ch++){
+          const data=channels[ch];
+          const lines=times.map(time=>new Float32Array(Math.max(1,Math.round((time+ch*.00073)*sampleRate))));
+          const feedback=lines.map(line=>Math.pow(.001,line.length/(sampleRate*decay)));
+          const damped=new Float64Array(lines.length),positions=new Int32Array(lines.length);
+          const diffuser=new Float32Array(Math.max(1,Math.round(sampleRate*(.005+ch*.0003))));
+          let diffuserIndex=0;
+          for(let i=0;i<frames;i++){
+            const dry=data[i];
+            let reflections=0;
+            for(let j=0;j<lines.length;j++){
+              const reflected=lines[j][positions[j]];
+              damped[j]=reflected*.65+damped[j]*.35;
+              lines[j][positions[j]]=dry+damped[j]*feedback[j];
+              positions[j]=(positions[j]+1)%lines[j].length;
+              reflections+=reflected;
+            }
+            const delayed=diffuser[diffuserIndex];
+            const diffuse=reflections/lines.length+delayed*.5;
+            diffuser[diffuserIndex]=diffuse;
+            diffuserIndex=(diffuserIndex+1)%diffuser.length;
+            const wet=delayed-diffuse*.5;
+            data[i]=dry*(1-mix)+wet*mix;
+          }
+        }
+      }
       if(f.delayOn&&f.delayMix>0){for(const data of channels){const line=new Float32Array(Math.max(1,Math.round(sampleRate*f.delayTime/1000))),mix=clamp(f.delayMix/100,0,.6),feedback=clamp(f.delayFeedback/100,0,.75);let index=0;for(let i=0;i<frames;i++){const delayed=line[index],dry=data[i];line[index]=dry+delayed*feedback;data[i]=dry+delayed*mix;index=(index+1)%line.length;}}}
       if(f.mono&&channels.length>1){const mono=new Float32Array(frames);for(const c of channels)for(let i=0;i<frames;i++)mono[i]+=c[i]/channels.length;channels=[mono];}
       if(channels.length===2&&f.width!==100){const width=clamp(f.width/100,0,2);for(let i=0;i<frames;i++){const mid=(channels[0][i]+channels[1][i])*.5,side=(channels[0][i]-channels[1][i])*.5*width;channels[0][i]=mid+side;channels[1][i]=mid-side;}}

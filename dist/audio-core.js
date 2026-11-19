@@ -65,7 +65,62 @@
     }
     return buffer;
   }
-  const api = {clamp,formatTime,parseTime,selectionFrames,findPeak,processSelection,replaceRange,insertSilence,encodeWav};
+  function estimateBpm(channels, sampleRate) {
+    const hop = Math.round(sampleRate / 100);
+    const frames = Math.floor(Math.min(channels[0]?.length || 0, sampleRate * 45) / hop);
+    if (frames < 4 * sampleRate / hop) return null;
+    const envelope = new Float32Array(frames);
+    let loudest = 0;
+    for (let frame = 0; frame < frames; frame++) {
+      let energy = 0;
+      const start = frame * hop;
+      for (const channel of channels) {
+        for (let i = start; i < start + hop; i++) energy += channel[i] ** 2;
+      }
+      envelope[frame] = Math.sqrt(energy / (hop * channels.length));
+      loudest = Math.max(loudest, envelope[frame]);
+    }
+    if (loudest < 1e-5) return null;
+    const floor = loudest * .015;
+    const onsets = envelope.map((value, i) => {
+      if (i < 3) return 0;
+      return Math.max(0, Math.log((floor + value) / (floor + envelope[i - 3])) - .1);
+    });
+    let events = 0, last = -12;
+    for (let i = 3; i < frames; i++) {
+      if (onsets[i] > .4 && i - last >= 12) { events++; last = i; }
+    }
+    if (events < 4) return null;
+
+    const beatsPerMinute = 60 * sampleRate / hop;
+    const minLag = Math.floor(beatsPerMinute / 205);
+    const maxLag = Math.ceil(beatsPerMinute / 55);
+    const scores = new Float64Array(maxLag + 2);
+    for (let lag = minLag - 1; lag <= maxLag + 1; lag++) {
+      let overlap = 0, energyA = 0, energyB = 0;
+      for (let i = lag; i < frames; i++) {
+        const a = onsets[i], b = onsets[i - lag];
+        overlap += a * b;
+        energyA += a * a;
+        energyB += b * b;
+      }
+      scores[lag] = overlap / Math.max(1e-8, Math.sqrt(energyA * energyB));
+    }
+    let bestLag = 0, bestScore = 0;
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      const score = scores[lag];
+      if (score <= scores[lag - 1] || score < scores[lag + 1]) continue;
+      // A multiple can align more closely when the beat falls between analysis frames.
+      const multiple = bestLag ? Math.round(lag / bestLag) : 0;
+      if (multiple > 1 && Math.abs(lag - bestLag * multiple) <= 2 && bestScore >= score * .8) continue;
+      if (score > bestScore + .06) { bestLag = lag; bestScore = score; }
+    }
+    if (bestScore < .35) return null;
+    const left = scores[bestLag - 1], right = scores[bestLag + 1];
+    const offset = .5 * (right - left) / (2 * bestScore - left - right);
+    return Math.round(beatsPerMinute / (bestLag + offset));
+  }
+  const api = {clamp,formatTime,parseTime,selectionFrames,findPeak,processSelection,replaceRange,insertSilence,encodeWav,estimateBpm};
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.AudioCore = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -30,3 +30,18 @@ assert.equal(odd.byteLength,48);assert.equal(new DataView(odd).getUint32(40,true
 const tiny=core.processSelection(source,8,{start:.749999,end:.749999,fadeIn:1,fadeOut:1});
 assert.equal(tiny[0].length,1);assert(Number.isFinite(tiny[0][0]));
 console.log('Audio checks passed: time parsing, sample-accurate trim, fades, normalization, clipping, stereo PCM16/24 and RIFF padding.');
+
+const {estimateBpm}=core;
+const tempoRate=44100;
+for(const bpm of [75,97,120,153,180]){
+  const clicks=new Float32Array(tempoRate*12);
+  for(let beat=1;beat*60/bpm<11;beat++){
+    const start=Math.round(beat*60/bpm*tempoRate);
+    for(let i=0;i<600;i++)clicks[start+i]=Math.sin(i*.17)*Math.exp(-i/140);
+  }
+  assert(Math.abs((estimateBpm([clicks],tempoRate)??0)-bpm)<=1);
+}
+assert.equal(estimateBpm([new Float32Array(tempoRate*8)],tempoRate),null);
+const singleHit=new Float32Array(tempoRate*8);
+singleHit.fill(.5,tempoRate,tempoRate+300);
+assert.equal(estimateBpm([singleHit],tempoRate),null);
