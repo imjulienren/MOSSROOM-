@@ -7,7 +7,7 @@
   let sourceOffset = 0, sourceTime = 0, sourceRate = 1, playbackRequest = 0;
   let frame = 0, zoom = 1, importing = false, drag = null, toastTimer = 0;
   let processed = null, exporting = false, downloadUrl = null, dragDepth = 0, timelineJob = null;
-  let monitorNode=null,auditionOriginal=false,mixResumeTimer=0,clipLatch=0,fxBefore=null,gainBefore=null;
+  let auditionOriginal=false,mixResumeTimer=0,clipLatch=0,fxBefore=null,gainBefore=null;
   const audioConstructor = window.AudioContext || window.webkitAudioContext;
   const settings = t => ({start:t.start,end:t.end,volume:t.volume,fadeIn:t.fadeIn,fadeOut:t.fadeOut,normalize:t.normalize,fx:{...MixerCore.defaults(),...t.fx}});
   const snapshot = t => ({...settings(t),buffer:t.buffer,cursor:t.cursor,timelineEdited:t.timelineEdited});
@@ -135,7 +135,7 @@
     const request=++playbackRequest;
     try{
       await context().resume();if(request!==playbackRequest)return;
-      const buffer=prepareSelection({...settings(current),bypassEffects:auditionOriginal});source=context().createBufferSource();source.buffer=buffer;source.loop=$('loop-btn').getAttribute('aria-pressed')==='true';sourceRate=Number($('speed').value);source.playbackRate.value=sourceRate;if(!monitorNode){monitorNode=context().createGain();monitorNode.gain.value=.8;monitorNode.connect(context().destination);}source.connect(monitorNode);
+      const buffer=prepareSelection({...settings(current),bypassEffects:auditionOriginal});source=context().createBufferSource();source.buffer=buffer;source.loop=$('loop-btn').getAttribute('aria-pressed')==='true';sourceRate=Number($('speed').value);source.playbackRate.value=sourceRate;source.connect(context().destination);
       sourceOffset=current.cursor>=current.start&&current.cursor<current.end?Math.min(current.cursor-current.start,buffer.duration):0;sourceTime=context().currentTime;const thisSource=source;
       source.onended=()=>{if(source!==thisSource)return;playing=false;source.disconnect();source=null;current.cursor=current.end;cancelAnimationFrame(frame);setPlaybackUI();renderPlayhead();updateMeters();status('播放完成');};
       source.start(0,sourceOffset);playing=true;setPlaybackUI();status(source.loop?'正在循环试听选区':'正在试听选区');animate();
