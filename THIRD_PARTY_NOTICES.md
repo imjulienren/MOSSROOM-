@@ -5,7 +5,7 @@
 局部拉伸使用 [Signalsmith Stretch](https://github.com/Signalsmith-Audio/signalsmith-stretch)。采用 MIT 许可证。
 
 - [许可证](dist/vendor/signalsmith-LICENSE.txt)
-- [来源、快照校验与适配说明](dist/vendor/README.md)
+- [来源、快照校验与适配说明](docs/vendor.md)
 
 ## LAME / lamejs
 
@@ -13,7 +13,7 @@ MP3 导出使用 [LAME](https://lame.sourceforge.io/) 的 JavaScript 移植版�
 
 - [许可证](dist/vendor/lamejs-LICENSE.txt)
 - [对应源码和构建清单](https://github.com/shijinyu/lamejs/tree/1fb0ef5fa177413107e2e107d054a9b994e3f79c)
-- [发布包校验](dist/vendor/README.md)
+- [发布包校验](docs/vendor.md)
 
 ## Silkscreen
 
