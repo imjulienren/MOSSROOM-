@@ -87,6 +87,35 @@
 .guide-popover.guide-open { display: block; }
 .guide-copy { display: block; }
 .guide-copy + .guide-copy { margin-top: 7px; }
+
+.playback-scrubber {
+  padding: 2px 16px;
+  background: #1c2c1c;
+  border-top: 1px solid #4e653738;
+}
+
+.playback-scrubber input[type=range] {
+  display: block;
+  height: 28px;
+  background: linear-gradient(to right, #b3c77f var(--played, 0%), #36482e var(--played, 0%)) center / 100% 4px no-repeat;
+  box-shadow: none;
+  touch-action: none;
+}
+
+.playback-scrubber input::-webkit-slider-thumb {
+  width: 11px;
+  height: 15px;
+  background: #dfbc7b;
+  border-color: #f0d7a2;
+}
+
+.playback-scrubber input::-moz-range-thumb {
+  width: 9px;
+  height: 13px;
+  background: #dfbc7b;
+  border-color: #f0d7a2;
+}
+
 @media (max-width: 950px) {
   .mixer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

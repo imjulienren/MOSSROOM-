@@ -65,6 +65,9 @@
             <div class="playhead" id="playhead"><span></span></div>
           </div>
         </div></div>
+        <div class="playback-scrubber">
+          <input type="range" id="playback-progress" min="0" max="1" step="any" value="0" aria-label="选区播放进度">
+        </div>
         <div class="wave-caption"><button id="select-all" class="text-button">选择全部</button></div>
         <div class="transport"><div class="transport-left"><button id="loop-btn" class="icon-button loop-button" title="循环播放 L" aria-label="循环播放" aria-pressed="false"><svg><use href="#i-loop"/></svg></button><span id="loop-label">循环关闭</span></div><div class="playback-controls"><button class="icon-button skip-button" id="jump-start" title="回到选区开头" aria-label="回到选区开头"><svg><use href="#i-start"/></svg></button><button class="play-button" id="play-btn" title="播放选区 Space" aria-label="播放选区"><svg><use href="#i-play"/></svg></button><button class="icon-button skip-button" id="jump-end" title="跳到选区结尾" aria-label="跳到选区结尾"><svg><use href="#i-end"/></svg></button></div><div class="transport-right"><label class="sr-only" for="speed">试听速度</label><select id="speed" title="试听速度"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2.0×</option></select><span class="playback-time" id="playback-time">00:00.000</span></div></div>
       </section>

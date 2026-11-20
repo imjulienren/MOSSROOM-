@@ -1,10 +1,12 @@
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
+  const playbackProgress = $('playback-progress');
   const {clamp,formatTime,parseTime,findPeak,encodeWav,estimateBpm} = AudioCore;
   const tracks = [];
   let current = null, audioContext = null, source = null, playing = false;
   let sourceOffset = 0, sourceTime = 0, sourceRate = 1, playbackRequest = 0;
+  let progressDrag = null;
   let frame = 0, zoom = 1, importing = false, drag = null, toastTimer = 0;
   let processed = null, exporting = false, downloadUrl = null, dragDepth = 0, timelineJob = null;
   let auditionOriginal=false,mixResumeTimer=0,clipLatch=0,fxBefore=null,gainBefore=null;
@@ -54,6 +56,7 @@
     $('empty-state').hidden=!!current;$('workspace-heading').hidden=!current;$('export-btn').disabled=!current||!!timelineJob;$('stretch-btn').disabled=$('silence-btn').disabled=!current||importing||!!timelineJob;
     if(!current)return;
     const t=current, duration=t.buffer.duration;
+    playbackProgress.min=t.start;playbackProgress.max=t.end;
     $('track-title').textContent=t.name;$('file-meta').textContent=(fileFormat(t)+'　')+(t.buffer.numberOfChannels===1?'单声道':'立体声')+'　'+(t.buffer.sampleRate/1000).toFixed(1).replace('.0','')+' kHz　'+duration.toFixed(2)+' 秒　'+(t.bpm===null?'未检测到节拍':'约 '+t.bpm+' BPM');
     $('edit-badge').hidden=!t.timelineEdited;
     $('start-input').value=formatTime(t.start);$('end-input').value=formatTime(t.end);
@@ -111,7 +114,22 @@
     }
     if(t.fadeIn>0||t.fadeOut>0){ctx.strokeStyle='#d1ba7788';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();const from=t.start/duration*width,to=t.end/duration*width;ctx.moveTo(from,t.fadeIn?height-15:15);if(t.fadeIn)ctx.lineTo((t.start+t.fadeIn)/duration*width,15);if(t.fadeOut){ctx.lineTo((t.end-t.fadeOut)/duration*width,15);ctx.lineTo(to,height-15);}else ctx.lineTo(to,15);ctx.stroke();ctx.setLineDash([]);}
   }
-  function renderPlayhead() { if(!current)return;$('playhead').style.left=(clamp(current.cursor,0,current.buffer.duration)/current.buffer.duration*100)+'%';$('playback-time').textContent=formatTime(current.cursor); }
+  function renderPlayhead() {
+    if(!current)return;
+    const {cursor,start,end,buffer}=current;
+    $('playhead').style.left=(clamp(cursor,0,buffer.duration)/buffer.duration*100)+'%';
+    $('playback-time').textContent=formatTime(cursor);
+    const position=clamp(cursor,start,end);
+    if(playbackProgress.valueAsNumber!==position)playbackProgress.valueAsNumber=position;
+    playbackProgress.setAttribute('aria-valuetext',formatTime(position));
+    playbackProgress.style.setProperty('--played',((position-start)/(end-start)*100)+'%');
+  }
+  function revealPlayhead() {
+    if(zoom<=1)return;
+    const scroll=$('wave-scroll'),wave=$('wave-area');
+    const x=current.cursor/current.buffer.duration*wave.clientWidth+wave.offsetLeft;
+    if(x>scroll.scrollLeft+scroll.clientWidth-30||x<scroll.scrollLeft+10)scroll.scrollLeft=Math.max(0,x-scroll.clientWidth*.2);
+  }
   function setPlaybackUI() { $('play-btn').replaceChildren(icon(playing?'pause':'play'));$('play-btn').setAttribute('aria-label',playing?'暂停':'播放选区');$('play-btn').title=(playing?'暂停':'播放选区')+' Space'; }
   function getPlaybackPosition() {
     if(!playing||!current||!processed)return current?current.cursor:0;
@@ -119,6 +137,7 @@
     return current.start+($('loop-btn').getAttribute('aria-pressed')==='true'?elapsed%processed.buffer.duration:Math.min(elapsed,processed.buffer.duration));
   }
   function pause() {
+    progressDrag=null;
     clearTimeout(mixResumeTimer);mixResumeTimer=0;
     playbackRequest++;
     if(playing&&current)current.cursor=clamp(getPlaybackPosition(),0,current.buffer.duration);
@@ -143,7 +162,7 @@
   }
   function animate() {
     if(!playing||!current)return;current.cursor=getPlaybackPosition();renderPlayhead();updateMeters(true);
-    if(zoom>1){const scroll=$('wave-scroll'),x=current.cursor/current.buffer.duration*$('wave-area').clientWidth+23;if(x>scroll.scrollLeft+scroll.clientWidth-30||x<scroll.scrollLeft+10)scroll.scrollLeft=Math.max(0,x-scroll.clientWidth*.2);}
+    revealPlayhead();
     frame=requestAnimationFrame(animate);
   }
   function togglePlay(){if(playing||mixResumeTimer){pause();status('已暂停');}else play();}
@@ -305,6 +324,26 @@
   }
   $('import-btn').onclick=$('empty-import').onclick=()=>$('file-input').click();$('file-input').onchange=event=>importFiles([...event.target.files]);
   $('play-btn').onclick=togglePlay;$('loop-btn').onclick=toggleLoop;$('jump-start').onclick=()=>{if(current)seek(current.start);};$('jump-end').onclick=()=>{if(current){pause();current.cursor=current.end;renderPlayhead();}};
+  playbackProgress.addEventListener('input',()=>{
+    if(!current)return;
+    const position=playbackProgress.valueAsNumber;
+    if(!progressDrag){
+      const resume=playing||!!mixResumeTimer;
+      pause();
+      progressDrag={resume};
+    }
+    current.cursor=position;
+    renderPlayhead();
+    revealPlayhead();
+  });
+  function finishProgressDrag(){
+    if(!progressDrag)return;
+    const {resume}=progressDrag;
+    progressDrag=null;
+    if(resume&&current.cursor<current.end)play();
+    else if(resume)status('播放完成');
+  }
+  for(const event of ['change','pointercancel','blur'])playbackProgress.addEventListener(event,finishProgressDrag);
   $('speed').onchange=()=>{const resume=playing;pause();if(resume)play();};$('zoom-in').onclick=()=>setZoom(zoom*1.5);$('zoom-out').onclick=()=>setZoom(zoom/1.5);$('zoom-fit').onclick=()=>setZoom(1);
   $('undo-btn').onclick=()=>history('undo');$('redo-btn').onclick=()=>history('redo');$('start-input').onchange=()=>setTime('start');$('end-input').onchange=()=>setTime('end');
   for(const id of ['start-input','end-input'])$(id).addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();event.target.blur();}});
