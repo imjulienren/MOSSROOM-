@@ -9,7 +9,7 @@
 
 ## LAME / lamejs
 
-MP3 导出使用 [LAME](https://lame.sourceforge.io/) 的 JavaScript 移植版，随页面加载未改动的 `@breezystack/lamejs` 1.2.7，采用 GNU LGPL 3.0。
+MP3 导出使用 [LAME](https://lame.sourceforge.io/) 的 JavaScript 移植版，首次导出 MP3 时加载未改动的 `@breezystack/lamejs` 1.2.7，采用 GNU LGPL 3.0。
 
 - [许可证](dist/vendor/lamejs-LICENSE.txt)
 - [对应源码和构建清单](https://github.com/shijinyu/lamejs/tree/1fb0ef5fa177413107e2e107d054a9b994e3f79c)

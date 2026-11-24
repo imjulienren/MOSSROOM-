@@ -17,6 +17,7 @@ const VideoEditor = (() => {
   const seekKeys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
   const captureMaxEdge = 1280;
   const captureQuality = 0.82;
+  const captureMaxBytes = 1_000_000;
   let clip = null;
   let drag = null;
   let scrub = null;
@@ -278,6 +279,31 @@ const VideoEditor = (() => {
     captureButton.disabled = !canCapture();
   }
 
+  async function encodeCapture() {
+    const frame = document.createElement('canvas');
+    const {videoWidth, videoHeight} = preview;
+    const scale = Math.min(1, captureMaxEdge / Math.max(videoWidth, videoHeight));
+    frame.width = Math.max(1, Math.round(videoWidth * scale));
+    frame.height = Math.max(1, Math.round(videoHeight * scale));
+    frame.getContext('2d', {alpha: false}).drawImage(preview, 0, 0, frame.width, frame.height);
+
+    const resized = document.createElement('canvas');
+    const initialEdge = Math.max(frame.width, frame.height);
+    for (let edge = initialEdge; edge >= 1; edge = Math.floor(edge * .75)) {
+      const canvas = edge === initialEdge ? frame : resized;
+      if (canvas === resized) {
+        const ratio = edge / initialEdge;
+        canvas.width = Math.max(1, Math.round(frame.width * ratio));
+        canvas.height = Math.max(1, Math.round(frame.height * ratio));
+        canvas.getContext('2d', {alpha: false}).drawImage(frame, 0, 0, canvas.width, canvas.height);
+      }
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', captureQuality));
+      if (blob?.type !== 'image/jpeg') throw Error('无法生成 JPEG 截图');
+      if (blob.size <= captureMaxBytes) return blob;
+    }
+    throw Error('无法将截图压缩至 1 MB 以内');
+  }
+
   async function captureFrame() {
     if (!canCapture()) return;
     const time = formatTime(preview.currentTime);
@@ -285,16 +311,9 @@ const VideoEditor = (() => {
     video.capturing = true;
     updateCaptureButton();
     try {
-      const canvas = document.createElement('canvas');
-      const {videoWidth, videoHeight} = preview;
-      const scale = Math.min(1, captureMaxEdge / Math.max(videoWidth, videoHeight));
-      canvas.width = Math.max(1, Math.round(videoWidth * scale));
-      canvas.height = Math.max(1, Math.round(videoHeight * scale));
-      canvas.getContext('2d', {alpha: false}).drawImage(preview, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', captureQuality));
-      if (!blob) throw Error('截图生成失败');
+      const blob = await encodeCapture();
       if (!clips.includes(video)) return;
-      video.captures.unshift({url: URL.createObjectURL(blob), time, extension: blob.type === 'image/jpeg' ? 'jpg' : 'png'});
+      video.captures.unshift({url: URL.createObjectURL(blob), time, bytes: blob.size});
       if (clip === video) {
         renderCaptures();
         status('已暂存 ' + time + ' 的截图');
@@ -317,17 +336,18 @@ const VideoEditor = (() => {
     captureList.scrollTop = captureList.scrollLeft = 0;
   }
 
-  function makeCaptureItem({url, time, extension}) {
+  function makeCaptureItem({url, time, bytes}) {
     const {name} = clip;
     const link = document.createElement('a');
     link.href = url;
-    link.download = name.replace(/[<>:"/\\|?*]/g, '_') + '_截图_' + time.replace(':', '-') + '.' + extension;
-    link.setAttribute('aria-label', '下载 ' + name + ' 在 ' + time + ' 的截图');
+    link.download = name.replace(/[<>:"/\\|?*]/g, '_') + '_截图_' + time.replace(':', '-') + '.jpg';
+    const size = formatBytes(bytes);
+    link.setAttribute('aria-label', '下载 ' + name + ' 在 ' + time + ' 的截图，' + size);
     const image = new Image();
     image.src = url;
     image.alt = '';
     const stamp = document.createElement('span');
-    stamp.textContent = time;
+    stamp.append(time, document.createElement('br'), size);
     link.append(image, stamp);
     link.addEventListener('pointerenter', event => {
       if (event.pointerType === 'mouse') scheduleCapturePreview(link, url);
