@@ -175,20 +175,18 @@
   function pointerTime(event){const rect=$('wave-area').getBoundingClientRect();return clamp((event.clientX-rect.left)/rect.width,0,1)*current.buffer.duration;}
   $('wave-area').addEventListener('pointerdown',event=>{
     if(!current||event.button!==0)return;event.preventDefault();pause();const endpoint=event.target.closest('.selection-handle');if(endpoint)endpoint.focus();else $('wave-area').focus();
-    drag={pointer:event.pointerId,endpoint:endpoint?endpoint.id.replace('handle-',''):null,anchor:pointerTime(event),x:event.clientX,before:snapshot(current),moved:false,stretch:!!endpoint&&endpoint.id==='handle-end'&&event.altKey};$('wave-area').setPointerCapture(event.pointerId);
-    if(drag.stretch){$('selection').classList.add('stretching-selection');$('wave-area').classList.add('stretch-dragging');}
+    drag={pointer:event.pointerId,endpoint:endpoint?endpoint.id.replace('handle-',''):null,anchor:pointerTime(event),x:event.clientX,before:snapshot(current),moved:false};$('wave-area').setPointerCapture(event.pointerId);
   });
   $('wave-area').addEventListener('pointermove',event=>{
     if(!drag||!current||event.pointerId!==drag.pointer)return;const time=pointerTime(event);
     if(Math.abs(event.clientX-drag.x)>3)drag.moved=true;
-    if(drag.stretch){const length=drag.before.end-drag.before.start,delta=(event.clientX-drag.x)/$('wave-area').getBoundingClientRect().width*current.buffer.duration;drag.target=clamp(length+delta,Math.max(.02,length*.25),length*4);$('selection').style.width=(drag.target/current.buffer.duration*100)+'%';$('selection-time').textContent=drag.target.toFixed(3)+' s';return;}
     if(drag.endpoint==='start')current.start=clamp(time,0,current.end-minimum());else if(drag.endpoint==='end')current.end=clamp(time,current.start+minimum(),current.buffer.duration);else if(drag.moved){current.start=Math.min(drag.anchor,time);current.end=Math.max(drag.anchor,time);}
     if(drag.moved||drag.endpoint){clean(current);current.cursor=current.start;processed=null;render();}
   });
-  function endDrag(event){if(!drag||!current||event.pointerId!==drag.pointer)return;const completed=drag;drag=null;$('selection').classList.remove('stretching-selection');$('wave-area').classList.remove('stretch-dragging');if(completed.stretch){render();if(completed.moved&&openStretch(completed.target))$('stretch-form').requestSubmit();return;}if(!completed.moved&&!completed.endpoint){current.cursor=pointerTime(event);renderPlayhead();}else{remember(completed.before);render();status('选区已更新');}}
+  function endDrag(event){if(!drag||!current||event.pointerId!==drag.pointer)return;const completed=drag;drag=null;if(!completed.moved&&!completed.endpoint){current.cursor=pointerTime(event);renderPlayhead();}else{remember(completed.before);render();status('选区已更新');}}
   $('wave-area').addEventListener('pointerup',endDrag);
-  $('wave-area').addEventListener('pointercancel',event=>{if(drag&&current){Object.assign(current,drag.before);drag=null;$('selection').classList.remove('stretching-selection');$('wave-area').classList.remove('stretch-dragging');render();}});
-  for(const endpoint of ['start','end'])$('handle-'+endpoint).addEventListener('keydown',event=>{if(!current||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();event.stopPropagation();const delta=(event.shiftKey?.1:.001)*(event.key==='ArrowLeft'?-1:1);edit(t=>{const target=event.key==='Home'?0:event.key==='End'?t.buffer.duration:t[endpoint]+delta;t[endpoint]=endpoint==='start'?clamp(target,0,t.end-minimum(t)):clamp(target,t.start+minimum(t),t.buffer.duration);t.cursor=t.start;});});
+  $('wave-area').addEventListener('pointercancel',event=>{if(drag&&current){Object.assign(current,drag.before);drag=null;render();}});
+  for(const endpoint of ['start','end'])$('handle-'+endpoint).addEventListener('keydown',event=>{if(!current||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;event.preventDefault();event.stopPropagation();const delta=.001*(event.key==='ArrowLeft'?-1:1);edit(t=>{const target=event.key==='Home'?0:event.key==='End'?t.buffer.duration:t[endpoint]+delta;t[endpoint]=endpoint==='start'?clamp(target,0,t.end-minimum(t)):clamp(target,t.start+minimum(t),t.buffer.duration);t.cursor=t.start;});});
   async function importFiles(files){
     if(importing||timelineJob){toast('正在处理音频，请稍候。');return;}if(!files.length)return;importing=true;$('import-btn').disabled=true;let success=0,errors=[];
     try{for(const file of files){
@@ -205,7 +203,7 @@
   function ensureEditCapacity(newLength){const active=tracks.reduce((sum,t)=>sum+t.buffer.length*t.buffer.numberOfChannels*4,0),additional=newLength*current.buffer.numberOfChannels*4;if(active+additional>384*1024*1024)throw Error('本次编辑需要更多内存，请缩短选区或移除其他音频。');}
   function commitTimeline(channels,before,range,cursor){const buffer=context().createBuffer(channels.length,channels[0].length,current.buffer.sampleRate);channels.forEach((data,c)=>buffer.copyToChannel(data,c));const analysis=analyzeBuffer(buffer);Object.assign(current,{buffer,...analysis,...range,cursor,timelineEdited:true});clean(current);remember(before);processed=null;render();}
   function syncStretchTarget(value,updateInput=true){if(!current)return;const original=current.end-current.start,min=Number($('stretch-duration').min),max=Number($('stretch-duration').max);if(!Number.isFinite(value)||value<=0)return;const target=clamp(value,min,max),percent=target/original*100;if(updateInput)$('stretch-duration').value=target.toFixed(3);$('stretch-ratio').value=percent.toFixed(1).replace('.0','')+'%';$('stretch-percent').value=Math.round(percent);const fill=(percent-Number($('stretch-percent').min))/(400-Number($('stretch-percent').min))*100;$('stretch-percent').style.background=`linear-gradient(to right,#b6cc7d ${fill}%,#252a1d ${fill}%)`;for(const button of document.querySelectorAll('[data-stretch]')){const duration=original*Number(button.dataset.stretch);button.disabled=duration<min-.00001||duration>max+.00001;button.classList.toggle('active',Math.abs(percent-Number(button.dataset.stretch)*100)<.1);}}
-  function openStretch(target){if(!current||importing||timelineJob)return false;pause();const duration=current.end-current.start;if(duration<.02){toast('请至少选择 0.020 秒音频再进行拉伸。');return false;}$('stretch-original').replaceChildren(document.createTextNode(duration.toFixed(3)+' '));const unit=document.createElement('small');unit.textContent='秒';$('stretch-original').append(unit);$('stretch-duration').min=(Math.ceil(Math.max(.02,duration*.25)*1000)/1000).toFixed(3);$('stretch-duration').max=(Math.floor(duration*4*1000)/1000).toFixed(3);$('stretch-percent').min=Math.ceil(Math.max(.02,duration*.25)/duration*100);$('stretch-progress').hidden=true;syncStretchTarget(typeof target==='number'?target:duration*1.25);$('stretch-dialog').showModal();return true;}
+  function openStretch(){if(!current||importing||timelineJob)return false;pause();const duration=current.end-current.start;if(duration<.02){toast('请至少选择 0.020 秒音频再进行拉伸。');return false;}$('stretch-original').replaceChildren(document.createTextNode(duration.toFixed(3)+' '));const unit=document.createElement('small');unit.textContent='秒';$('stretch-original').append(unit);$('stretch-duration').min=(Math.ceil(Math.max(.02,duration*.25)*1000)/1000).toFixed(3);$('stretch-duration').max=(Math.floor(duration*4*1000)/1000).toFixed(3);$('stretch-percent').min=Math.ceil(Math.max(.02,duration*.25)/duration*100);$('stretch-progress').hidden=true;syncStretchTarget(duration*1.25);$('stretch-dialog').showModal();return true;}
   function abortError(){const error=Error('操作已取消');error.name='AbortError';return error;}
   function cancelTimeline(){if(timelineJob){timelineJob.cancelled=true;if(timelineJob.abort)timelineJob.abort();}}
   async function renderStretch(channels,rate,frames,job){
@@ -366,11 +364,6 @@
   $('export-btn').onclick=openExport;$('export-form').onsubmit=exportAudio;
   $('export-format').onchange=syncExportFormat;
   for(const id of ['export-rate','export-depth','export-bitrate','export-channels','export-scope'])$(id).onchange=estimateExport;
-  $('help-btn').onclick = () => {
-    $('audio-shortcuts').hidden = activeTab !== 'audio';
-    $('video-shortcuts').hidden = activeTab !== 'video';
-    $('help-dialog').showModal();
-  };
   for(const button of document.querySelectorAll('.close-dialog'))button.onclick=()=>{if(!exporting){const dialog=button.closest('dialog');if(dialog.id==='stretch-dialog')cancelTimeline();dialog.close();}};
   $('stretch-dialog').addEventListener('close',cancelTimeline);
   $('export-dialog').addEventListener('close',()=>{$('export-cancel').textContent='取消';});$('export-dialog').addEventListener('cancel',event=>{if(exporting)event.preventDefault();});
@@ -457,18 +450,6 @@
       $(target + '-tab').focus();
     });
   }
-  document.addEventListener('keydown',event=>{
-    if(document.querySelector('dialog[open]'))return;
-    if(activeTab==='video'){VideoEditor.handleKeydown(event);return;}
-    const modifier=event.metaKey||event.ctrlKey,key=event.key.toLowerCase();
-    if(modifier&&key==='o'){event.preventDefault();$('file-input').click();return;}if(modifier&&key==='e'){event.preventDefault();openExport();return;}
-    if(event.target.closest('input,textarea,select,.guide-button'))return;
-    if(event.code==='Space'&&event.target.closest('button,a'))return;
-    if(modifier&&key==='a'){event.preventDefault();$('select-all').click();return;}if(modifier&&key==='z'){event.preventDefault();history(event.shiftKey?'redo':'undo');return;}
-    if(modifier||event.altKey)return;
-    if(event.code==='Space'){event.preventDefault();togglePlay();}else if(key==='l'){event.preventDefault();toggleLoop();}else if(current&&(key==='['||key===']')){event.preventDefault();const point=current.cursor;if(key==='['&&point<current.end)edit(t=>t.start=point);else if(key===']'&&point>current.start)edit(t=>t.end=point);}
-    else if(current&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();seek(current.cursor+(event.key==='ArrowLeft'?-1:1)*(event.shiftKey?1:.1));}
-  });
   function hideDropOverlays() {
     $('drop-overlay').hidden = $('video-drop-overlay').hidden = true;
   }

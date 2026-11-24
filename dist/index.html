@@ -39,7 +39,6 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
   <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
   <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 13v-2a8 8 0 0 1 16 0v2M4 12H3v8h5v-8Zm16 0h1v8h-5v-8Z"/></symbol>
-  <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 15h10"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4 8 9 8 9s8-5 8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
   <symbol id="i-fadein" viewBox="0 0 24 24"><path d="M3 19h18M4 16 20 4"/></symbol>
   <symbol id="i-fadeout" viewBox="0 0 24 24"><path d="M3 19h18M4 4l16 12"/></symbol>
@@ -54,10 +53,10 @@
         <button type="button" id="video-tab" role="tab" aria-controls="video-panel" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-video"/></svg>视频剪辑</button>
       </div>
     </nav>
-    <div class="header-tools"><span class="local-indicator"><i></i>本地处理</span><button id="help-btn" class="icon-button" title="快捷键" aria-label="键盘快捷键"><svg><use href="#i-keyboard"/></svg></button></div></header>
+    <div class="header-tools"><span class="local-indicator"><i></i>本地处理</span></div></header>
   <div class="app-body" id="audio-panel" role="tabpanel" aria-labelledby="audio-tab">
     <aside class="sidebar" aria-label="音频资料库">
-      <button id="import-btn" class="import-button"><svg><use href="#i-plus"/></svg>导入音频<span>⌘ O</span></button>
+      <button id="import-btn" class="import-button"><svg><use href="#i-plus"/></svg>导入音频</button>
       <div class="library-heading"><span>资料库</span><span id="track-count">0</span></div>
       <div id="track-list" class="track-list"></div>
 
@@ -66,7 +65,7 @@
       <div class="workspace-heading" id="workspace-heading" hidden><div><h1 id="track-title"></h1><p class="file-meta" id="file-meta"></p></div><button class="primary-button export-button" id="export-btn"><svg><use href="#i-export"/></svg>导出音频</button></div>
       <div id="track-editor" hidden>
       <div class="deck-row"><section class="editor-card" aria-label="波形编辑区">
-        <div class="editor-toolbar"><div class="wave-label"><svg><use href="#i-wave"/></svg><span>波形</span><span class="guide-anchor"><button type="button" class="guide-button" aria-label="波形帮助" aria-describedby="guide-wave">?</button><span class="guide-popover" id="guide-wave" role="tooltip" popover="manual"><span class="guide-copy">拖动波形选择片段，点击放置播放头。拖动选区边缘可改起止点。</span><span class="guide-copy">按住 Option 或 Alt 拖动选区右边缘可拉伸。循环试听可用来检查 BGM 接缝。</span><span class="guide-copy">标题下的 BPM 是对导入音频的估算值，依据开头最多 45 秒的节拍。</span></span></span><span class="edit-badge" id="edit-badge" hidden>已编辑</span></div><div class="editor-tools"><div class="history-tools"><button class="icon-button" id="undo-btn" title="撤销 ⌘ Z" aria-label="撤销" disabled><svg><use href="#i-undo"/></svg></button><button class="icon-button" id="redo-btn" title="重做 ⇧ ⌘ Z" aria-label="重做" disabled><svg><use href="#i-redo"/></svg></button></div><span class="tool-divider"></span><button class="icon-button" id="zoom-out" title="缩小波形" aria-label="缩小波形"><svg><use href="#i-minus"/></svg></button><span class="zoom-value" id="zoom-value">100%</span><button class="icon-button" id="zoom-in" title="放大波形" aria-label="放大波形"><svg><use href="#i-plus"/></svg></button><button class="icon-button" id="zoom-fit" title="适合窗口" aria-label="适合窗口"><svg><use href="#i-fit"/></svg></button></div></div>
+        <div class="editor-toolbar"><div class="wave-label"><svg><use href="#i-wave"/></svg><span>波形</span><span class="guide-anchor"><button type="button" class="guide-button" aria-label="波形帮助" aria-describedby="guide-wave">?</button><span class="guide-popover" id="guide-wave" role="tooltip" popover="manual"><span class="guide-copy">拖动波形选择片段，点击放置播放头。拖动选区边缘可改起止点。</span><span class="guide-copy">循环试听可用来检查 BGM 接缝。</span><span class="guide-copy">标题下的 BPM 是对导入音频的估算值，依据开头最多 45 秒的节拍。</span></span></span><span class="edit-badge" id="edit-badge" hidden>已编辑</span></div><div class="editor-tools"><div class="history-tools"><button class="icon-button" id="undo-btn" title="撤销" aria-label="撤销" disabled><svg><use href="#i-undo"/></svg></button><button class="icon-button" id="redo-btn" title="重做" aria-label="重做" disabled><svg><use href="#i-redo"/></svg></button></div><span class="tool-divider"></span><button class="icon-button" id="zoom-out" title="缩小波形" aria-label="缩小波形"><svg><use href="#i-minus"/></svg></button><span class="zoom-value" id="zoom-value">100%</span><button class="icon-button" id="zoom-in" title="放大波形" aria-label="放大波形"><svg><use href="#i-plus"/></svg></button><button class="icon-button" id="zoom-fit" title="适合窗口" aria-label="适合窗口"><svg><use href="#i-fit"/></svg></button></div></div>
         <div class="wave-scroll" id="wave-scroll"><div class="wave-content" id="wave-content">
           <div class="timeline" id="timeline" aria-hidden="true"></div>
           <div class="wave-area" id="wave-area" tabindex="0" role="group" aria-label="音频波形。拖动创建选区，点击定位，左右方向键移动播放位置。">
@@ -119,7 +118,7 @@
   </div>
   <div class="app-body" id="video-panel" role="tabpanel" aria-labelledby="video-tab" hidden>
     <aside class="sidebar" aria-label="视频资料库">
-      <button type="button" id="video-import" class="import-button"><svg aria-hidden="true"><use href="#i-plus"/></svg>导入视频<span>⌘ O</span></button>
+      <button type="button" id="video-import" class="import-button"><svg aria-hidden="true"><use href="#i-plus"/></svg>导入视频</button>
       <div class="library-heading"><span>资料库</span><span id="video-track-count">0</span></div>
       <div id="video-track-list" class="track-list"></div>
       <template id="video-track-template">
@@ -198,7 +197,7 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="export-dialog" aria-labelledby="export-title"><form id="export-form"><div class="dialog-heading"><div><div class="guide-heading"><h2 id="export-title">导出音频</h2><span class="guide-anchor"><button type="button" class="guide-button" aria-label="导出音频帮助" aria-describedby="guide-export">?</button><span class="guide-popover" id="guide-export" role="tooltip" popover="manual"><span class="guide-copy">WAV 适合需要精确切点的循环素材。MP3 体积更小，可选择码率。</span><span class="guide-copy">调音会写入导出文件，原音对比和试听速度只影响试听。</span></span></span></div></div><button type="button" class="icon-button close-dialog" aria-label="关闭导出窗口"><svg><use href="#i-close"/></svg></button></div><div class="export-summary"><span class="export-file-icon"><svg><use href="#i-wave"/></svg></span><div><strong id="export-track-name"></strong><span id="export-range"></span></div></div><label class="form-label" for="export-name">文件名称</label><div class="filename-input"><input id="export-name" type="text" autofocus required maxlength="150" autocomplete="off"><span id="export-extension">.wav</span></div><label class="form-label export-scope-label" for="export-scope">导出范围</label><select class="wide-select" id="export-scope"><option value="selection">当前选区</option><option value="full">完整音频</option></select><div class="export-options"><label>格式<select id="export-format"><option value="wav">WAV</option><option value="mp3">MP3</option></select></label><label>采样率<select id="export-rate"><option value="48000">48,000 Hz</option><option value="44100">44,100 Hz</option></select></label><label id="export-wav-settings">位深<select id="export-depth"><option value="16">16 bit 通用</option><option value="24" selected>24 bit 高精度</option></select></label><label id="export-mp3-settings" hidden>码率<select id="export-bitrate"><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="320">320 kbps</option></select></label><label>声道<select id="export-channels"><option value="original">保留原声道</option><option value="mono">单声道</option></select></label></div><div id="export-progress" class="export-progress" role="status" hidden>正在准备音频…</div><div class="dialog-footer"><span id="export-size">预计 —</span><a id="download-again" class="text-button" hidden>再次下载</a><button type="button" class="subtle-button close-dialog" id="export-cancel">取消</button><button type="submit" class="primary-button" id="export-confirm"><svg><use href="#i-export"/></svg><span id="export-confirm-label">导出 WAV</span></button></div></form></dialog>
 <dialog id="stretch-dialog" aria-labelledby="stretch-title"><form id="stretch-form">
-  <div class="dialog-heading"><div><div class="guide-heading"><h2 id="stretch-title">拉伸选区</h2><span class="guide-anchor"><button type="button" class="guide-button" aria-label="拉伸选区帮助" aria-describedby="guide-stretch">?</button><span class="guide-popover" id="guide-stretch" role="tooltip" popover="manual"><span class="guide-copy">保持音高，后续内容随片段长度移动。大幅拉伸可能改变音色。</span><span class="guide-copy">可按住 Option 或 Alt 拖动选区右侧手柄。支持撤销与重做。</span></span></span></div></div><button type="button" class="icon-button close-dialog" aria-label="关闭拉伸窗口"><svg><use href="#i-close"/></svg></button></div>
+  <div class="dialog-heading"><div><div class="guide-heading"><h2 id="stretch-title">拉伸选区</h2><span class="guide-anchor"><button type="button" class="guide-button" aria-label="拉伸选区帮助" aria-describedby="guide-stretch">?</button><span class="guide-popover" id="guide-stretch" role="tooltip" popover="manual"><span class="guide-copy">保持音高，后续内容随片段长度移动。大幅拉伸可能改变音色。</span><span class="guide-copy">支持撤销与重做。</span></span></span></div></div><button type="button" class="icon-button close-dialog" aria-label="关闭拉伸窗口"><svg><use href="#i-close"/></svg></button></div>
   <div class="time-edit-summary"><div><span>原片段时长</span><strong id="stretch-original">0.000 <small>秒</small></strong></div><svg><use href="#i-stretch"/></svg><div><label for="stretch-duration">目标时长</label><div class="stretch-duration-field"><input id="stretch-duration" type="number" autofocus min="0.02" step="0.001" required aria-label="拉伸后的目标时长"><span>秒</span></div></div></div>
   <div class="stretch-range-label"><span>拖动调整长度</span><output id="stretch-ratio" for="stretch-percent">125%</output></div><input id="stretch-percent" class="stretch-slider" type="range" min="25" max="400" step="1" value="125" aria-label="拉伸后的长度比例">
   <div class="stretch-presets"><button type="button" data-stretch="0.5">一半</button><button type="button" data-stretch="0.75">75%</button><button type="button" data-stretch="1">原长</button><button type="button" data-stretch="1.5">1.5 倍</button><button type="button" data-stretch="2">两倍</button></div>
@@ -214,16 +213,6 @@
 
   <div class="dialog-footer"><button type="button" class="subtle-button close-dialog">取消</button><button type="submit" class="primary-button" id="silence-confirm">插入空白</button></div>
 </form></dialog>
-<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><h2 id="help-title">键盘快捷键</h2></div><button type="button" class="icon-button close-dialog" aria-label="关闭快捷键窗口"><svg><use href="#i-close"/></svg></button></div><div class="shortcut-list" id="audio-shortcuts"><div><span>播放 / 暂停选区</span><kbd>Space</kbd></div><div><span>循环播放</span><kbd>L</kbd></div><div><span>直接拉伸选区</span><span><kbd>⌥</kbd> 拖动右侧手柄</span></div><div><span>在当前位置设置开始 / 结束点</span><span><kbd>[</kbd> <kbd>]</kbd></span></div><div><span>播放位置前移 / 后移 0.1 秒</span><span><kbd>←</kbd> <kbd>→</kbd></span></div><div><span>选区边界精细移动 / 快速移动</span><span><kbd>← →</kbd> / <kbd>⇧ ← →</kbd></span></div><div><span>选择全部</span><span><kbd>⌘</kbd> <kbd>A</kbd></span></div><div><span>撤销 / 重做</span><span><kbd>⌘ Z</kbd> / <kbd>⇧ ⌘ Z</kbd></span></div><div><span>导入 / 导出音频</span><span><kbd>⌘ O</kbd> / <kbd>⌘ E</kbd></span></div></div><div class="shortcut-list" id="video-shortcuts" hidden>
-  <div><span>播放 / 暂停选区</span><kbd>Space</kbd></div>
-  <div><span>在当前位置设置开始 / 结束点</span><span><kbd>[</kbd> <kbd>]</kbd></span></div>
-  <div><span>播放位置前移 / 后移 0.1 秒</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
-  <div><span>选区边界精细移动 / 快速移动</span><span><kbd>← →</kbd> / <kbd>⇧ ← →</kbd></span></div>
-  <div><span>选择全部</span><span><kbd>⌘</kbd> <kbd>A</kbd></span></div>
-  <div><span>导入 / 导出视频</span><span><kbd>⌘ O</kbd> / <kbd>⌘ E</kbd></span></div>
-</div>
-<p class="help-note">也支持 Windows 的 Ctrl 快捷键。文件在本机处理，关闭页面后请重新导入。</p></dialog>
-
 <dialog id="video-export-dialog" aria-labelledby="video-export-title">
   <form id="video-export-form">
     <div class="dialog-heading">
@@ -232,10 +221,12 @@
     </div>
     <div class="export-summary">
       <span class="export-file-icon"><svg aria-hidden="true"><use href="#i-video"/></svg></span>
-      <div><strong id="video-export-name"></strong><span id="video-export-range"></span></div>
+      <div><strong id="video-export-source"></strong><span id="video-export-range"></span></div>
     </div>
-    <label class="form-label" for="video-export-format">格式</label>
-    <select class="wide-select" id="video-export-format" autofocus><option value="mp4">MP4</option><option value="gif">GIF 动图</option></select>
+    <label class="form-label" for="video-export-name">文件名称</label>
+    <div class="filename-input"><input id="video-export-name" type="text" autofocus required maxlength="150" autocomplete="off"><span id="video-export-extension">.mp4</span></div>
+    <label class="form-label export-scope-label" for="video-export-format">格式</label>
+    <select class="wide-select" id="video-export-format"><option value="mp4">MP4</option><option value="gif">GIF 动图</option></select>
     <div class="export-options" id="video-gif-options" hidden>
       <label>画面长边<select id="video-gif-edge"><option value="320">320 px</option><option value="480" selected>480 px</option><option value="720">720 px</option></select></label>
       <label>帧率<select id="video-gif-fps"><option value="8">8 帧/秒</option><option value="12" selected>12 帧/秒</option><option value="15">15 帧/秒</option><option value="20">20 帧/秒</option><option value="25">25 帧/秒</option></select></label>

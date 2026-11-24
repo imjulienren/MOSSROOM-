@@ -481,6 +481,7 @@ const VideoEditor = (() => {
     discardDownload();
     const settings = exportSettings();
     const isGif = settings.format === 'gif';
+    $('export-extension').textContent = '.' + settings.format;
     $('gif-options').hidden = !isGif;
     $('export-info').textContent = isGif
       ? '静音循环播放。根据片段抽帧估算大小。'
@@ -508,14 +509,16 @@ const VideoEditor = (() => {
   function openExport() {
     if (!clip || importing || dialog.open) return;
     pause();
-    $('export-name').textContent = clip.file.name;
+    $('export-source').textContent = clip.file.name;
+    $('export-name').value = clip.name + '_剪辑';
+    $('export-name').setCustomValidity('');
     $('export-range').textContent = formatTime(clip.start) + ' – ' + formatTime(clip.end) + '　' + (clip.end - clip.start).toFixed(3) + ' 秒';
     dialog.showModal();
     refreshEstimate();
   }
 
   function setExportBusy(busy) {
-    for (const id of ['export-format', 'gif-edge', 'gif-fps', 'export-confirm']) $(id).disabled = busy;
+    for (const id of ['export-name', 'export-format', 'gif-edge', 'gif-fps', 'export-confirm']) $(id).disabled = busy;
     $('export-cancel').textContent = busy ? '取消导出' : '取消';
   }
 
@@ -523,7 +526,14 @@ const VideoEditor = (() => {
     event.preventDefault();
     if (!clip || exportJob || $('export-confirm').disabled) return;
     const settings = exportSettings();
-    const name = clip.name + '_剪辑.' + settings.format;
+    const nameInput = $('export-name');
+    const basename = nameInput.value.trim().replace(/[<>:"/\\|?*\x00-\x1F]/g, '_').replace(/\.(mp4|gif)$/i, '').trim();
+    if (!basename) {
+      nameInput.setCustomValidity('请为导出文件命名。');
+      nameInput.reportValidity();
+      return;
+    }
+    const name = basename + '.' + settings.format;
     discardDownload();
     setExportBusy(true);
     $('export-message').textContent = '正在导出 0%';
@@ -631,7 +641,7 @@ const VideoEditor = (() => {
       if (!seekKeys.includes(event.key)) return;
       event.preventDefault();
       event.stopPropagation();
-      const delta = (event.key === 'ArrowLeft' ? -1 : 1) * (event.shiftKey ? .1 : .001);
+      const delta = (event.key === 'ArrowLeft' ? -1 : 1) * .001;
       const time = event.key === 'Home' ? 0 : event.key === 'End' ? clip.duration : clip[endpoint] + delta;
       setBoundary(endpoint, time);
     });
@@ -674,6 +684,7 @@ const VideoEditor = (() => {
 
   $('export').onclick = openExport;
   $('export-form').onsubmit = exportVideo;
+  $('export-name').oninput = event => event.currentTarget.setCustomValidity('');
   for (const id of ['export-format', 'gif-edge', 'gif-fps']) $(id).onchange = refreshEstimate;
   $('export-close').onclick = $('export-cancel').onclick = closeExport;
   dialog.addEventListener('cancel', event => {
@@ -708,26 +719,5 @@ const VideoEditor = (() => {
     }
   });
 
-  function handleKeydown(event) {
-    const key = event.key.toLowerCase();
-    const command = event.metaKey || event.ctrlKey;
-    if (key === 'escape') hideCapturePreview();
-    if (command && key === 'o') { event.preventDefault(); chooseFile(); return; }
-    if (command && key === 'e') { event.preventDefault(); openExport(); return; }
-    if (!clip || event.target.closest('input,textarea,select,[role=tab]')) return;
-    if (command && key === 'a') { event.preventDefault(); selectAll(); return; }
-    if (command || event.altKey) return;
-    if (event.code === 'Space' && !event.target.closest('button,a')) {
-      event.preventDefault();
-      togglePlay();
-    } else if (key === '[' || key === ']') {
-      event.preventDefault();
-      setBoundary(key === '[' ? 'start' : 'end', preview.currentTime);
-    } else if (key === 'arrowleft' || key === 'arrowright') {
-      event.preventDefault();
-      seek(preview.currentTime + (key === 'arrowleft' ? -1 : 1) * (event.shiftKey ? 1 : .1));
-    }
-  }
-
-  return {importFiles, pause, handleKeydown};
+  return {importFiles, pause};
 })();
