@@ -198,8 +198,10 @@
 .video-capture-preview {
   position: fixed;
   z-index: 25;
-  outline: 1px solid #9faa70;
-  box-shadow: 0 6px 24px #12170caa;
+  border: 2px solid var(--edge);
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--wood);
   pointer-events: none;
 }
 .video-capture-preview img {
@@ -518,7 +520,6 @@ input[type=range]::-moz-range-thumb {
 .video-filmstrip { border-color: var(--edge); background: var(--editor-tint); }
 .video-selection { border-color: var(--brass); }
 .video-capture-list a { background: var(--panel); border-color: var(--edge); box-shadow: var(--panel-raised); overflow: hidden; }
-.video-capture-preview { outline-color: var(--edge); box-shadow: var(--panel-raised); }
 .drop-overlay { background: #fff1cff5; border-color: var(--green); backdrop-filter: none; }
 .drop-overlay svg, .drop-overlay strong { color: var(--green); }
 .toast, .guide-popover {

@@ -381,10 +381,13 @@ const VideoEditor = (() => {
       const spaceOnLeft = rect.left - margin - gap;
       const fitsOnLeft = spaceOnLeft >= 240;
       const maxHeight = Math.min(window.innerHeight * .65, 520);
-      const width = Math.min(620, maxHeight * clip.width / clip.height,
+      const thumbnail = anchor.querySelector('img');
+      const imageWidth = thumbnail.naturalWidth || clip.width;
+      const imageHeight = thumbnail.naturalHeight || clip.height;
+      const width = Math.min(620, maxHeight * imageWidth / imageHeight,
         fitsOnLeft ? spaceOnLeft : window.innerWidth - margin * 2);
-      capturePreviewImage.width = clip.width;
-      capturePreviewImage.height = clip.height;
+      capturePreviewImage.width = imageWidth;
+      capturePreviewImage.height = imageHeight;
       capturePreviewImage.src = url;
       capturePreview.style.width = width + 'px';
       capturePreview.hidden = false;
