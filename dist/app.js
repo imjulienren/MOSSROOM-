@@ -10,6 +10,7 @@
   let frame = 0, zoom = 1, importing = false, drag = null, toastTimer = 0;
   let processed = null, exporting = false, downloadUrl = null, dragDepth = 0, timelineJob = null;
   let auditionOriginal=false,mixResumeTimer=0,clipLatch=0,fxBefore=null,gainBefore=null;
+  let activeTab = 'audio';
   const audioConstructor = window.AudioContext || window.webkitAudioContext;
   const settings = t => ({start:t.start,end:t.end,volume:t.volume,fadeIn:t.fadeIn,fadeOut:t.fadeOut,normalize:t.normalize,fx:{...MixerCore.defaults(),...t.fx}});
   const snapshot = t => ({...settings(t),buffer:t.buffer,cursor:t.cursor,timelineEdited:t.timelineEdited});
@@ -110,9 +111,9 @@
       const from=Math.floor(b/bars*t.peaks.length),to=Math.max(from+1,Math.ceil((b+1)/bars*t.peaks.length));let peak=0;
       for(let i=from;i<to;i++)peak=Math.max(peak,t.peaks[i]||0);
       const x=b*3.5,amplitude=Math.max(1.2,Math.min(height*.39,peak*scale*height*.43)),time=b/bars*duration;
-      ctx.fillStyle=time>=t.start&&time<=t.end?'#bfd38a':'#638150';ctx.fillRect(Math.round(x),Math.round(height/2-amplitude),2,Math.round(amplitude*2));
+      ctx.fillStyle=time>=t.start&&time<=t.end?'#216749':'#729581';ctx.fillRect(Math.round(x),Math.round(height/2-amplitude),2,Math.round(amplitude*2));
     }
-    if(t.fadeIn>0||t.fadeOut>0){ctx.strokeStyle='#d1ba7788';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();const from=t.start/duration*width,to=t.end/duration*width;ctx.moveTo(from,t.fadeIn?height-15:15);if(t.fadeIn)ctx.lineTo((t.start+t.fadeIn)/duration*width,15);if(t.fadeOut){ctx.lineTo((t.end-t.fadeOut)/duration*width,15);ctx.lineTo(to,height-15);}else ctx.lineTo(to,15);ctx.stroke();ctx.setLineDash([]);}
+    if(t.fadeIn>0||t.fadeOut>0){ctx.strokeStyle='#99541ecc';ctx.lineWidth=1;ctx.setLineDash([3,3]);ctx.beginPath();const from=t.start/duration*width,to=t.end/duration*width;ctx.moveTo(from,t.fadeIn?height-15:15);if(t.fadeIn)ctx.lineTo((t.start+t.fadeIn)/duration*width,15);if(t.fadeOut){ctx.lineTo((t.end-t.fadeOut)/duration*width,15);ctx.lineTo(to,height-15);}else ctx.lineTo(to,15);ctx.stroke();ctx.setLineDash([]);}
   }
   function renderPlayhead() {
     if(!current)return;
@@ -365,7 +366,12 @@
   $('export-btn').onclick=openExport;$('export-form').onsubmit=exportAudio;
   $('export-format').onchange=syncExportFormat;
   for(const id of ['export-rate','export-depth','export-bitrate','export-channels','export-scope'])$(id).onchange=estimateExport;
-  $('help-btn').onclick=()=>$('help-dialog').showModal();for(const button of document.querySelectorAll('.close-dialog'))button.onclick=()=>{if(!exporting){const dialog=button.closest('dialog');if(dialog.id==='stretch-dialog')cancelTimeline();dialog.close();}};
+  $('help-btn').onclick = () => {
+    $('audio-shortcuts').hidden = activeTab !== 'audio';
+    $('video-shortcuts').hidden = activeTab !== 'video';
+    $('help-dialog').showModal();
+  };
+  for(const button of document.querySelectorAll('.close-dialog'))button.onclick=()=>{if(!exporting){const dialog=button.closest('dialog');if(dialog.id==='stretch-dialog')cancelTimeline();dialog.close();}};
   $('stretch-dialog').addEventListener('close',cancelTimeline);
   $('export-dialog').addEventListener('close',()=>{$('export-cancel').textContent='取消';});$('export-dialog').addEventListener('cancel',event=>{if(exporting)event.preventDefault();});
   for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener('click',event=>{if(event.target===dialog&&!exporting){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom)dialog.close();}});
@@ -424,8 +430,37 @@
   });
   window.addEventListener('scroll',positionGuide,true);
   window.addEventListener('resize',positionGuide);
+  const tabs = ['audio', 'video'];
+  function activateTab(name) {
+    if (name === activeTab) return;
+    closeGuide();
+    if (activeTab === 'audio') pause();
+    else VideoEditor.pause();
+    activeTab = name;
+    for (const tab of tabs) {
+      const active = tab === name;
+      $(tab + '-tab').setAttribute('aria-selected', String(active));
+      $(tab + '-tab').tabIndex = active ? 0 : -1;
+      $(tab + '-panel').hidden = !active;
+    }
+    if (name === 'audio') requestAnimationFrame(() => { renderTimeline(); drawWave(); });
+  }
+  for (const name of tabs) {
+    const tab = $(name + '-tab');
+    tab.addEventListener('click', () => activateTab(name));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const target = event.key === 'Home' ? 'audio' : event.key === 'End' ? 'video' : tabs.find(item => item !== name);
+      activateTab(target);
+      $(target + '-tab').focus();
+    });
+  }
   document.addEventListener('keydown',event=>{
-    if(document.querySelector('dialog[open]'))return;const modifier=event.metaKey||event.ctrlKey,key=event.key.toLowerCase();
+    if(document.querySelector('dialog[open]'))return;
+    if(activeTab==='video'){VideoEditor.handleKeydown(event);return;}
+    const modifier=event.metaKey||event.ctrlKey,key=event.key.toLowerCase();
     if(modifier&&key==='o'){event.preventDefault();$('file-input').click();return;}if(modifier&&key==='e'){event.preventDefault();openExport();return;}
     if(event.target.closest('input,textarea,select,.guide-button'))return;
     if(event.code==='Space'&&event.target.closest('button,a'))return;
@@ -434,10 +469,35 @@
     if(event.code==='Space'){event.preventDefault();togglePlay();}else if(key==='l'){event.preventDefault();toggleLoop();}else if(current&&(key==='['||key===']')){event.preventDefault();const point=current.cursor;if(key==='['&&point<current.end)edit(t=>t.start=point);else if(key===']'&&point>current.start)edit(t=>t.end=point);}
     else if(current&&['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();seek(current.cursor+(event.key==='ArrowLeft'?-1:1)*(event.shiftKey?1:.1));}
   });
-  window.addEventListener('dragenter',event=>{if([...event.dataTransfer.types].includes('Files')){event.preventDefault();dragDepth++;$('drop-overlay').hidden=false;}});
-  window.addEventListener('dragover',event=>{if([...event.dataTransfer.types].includes('Files')){event.preventDefault();event.dataTransfer.dropEffect='copy';}});
-  window.addEventListener('dragleave',event=>{event.preventDefault();dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)$('drop-overlay').hidden=true;});
-  window.addEventListener('drop',event=>{event.preventDefault();dragDepth=0;$('drop-overlay').hidden=true;if(document.querySelector('dialog[open]'))return;importFiles([...event.dataTransfer.files]);});
+  function hideDropOverlays() {
+    $('drop-overlay').hidden = $('video-drop-overlay').hidden = true;
+  }
+  window.addEventListener('dragenter', event => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    dragDepth++;
+    if (!document.querySelector('dialog[open]')) {
+      $(activeTab === 'video' ? 'video-drop-overlay' : 'drop-overlay').hidden = false;
+    }
+  });
+  window.addEventListener('dragover', event => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = document.querySelector('dialog[open]') ? 'none' : 'copy';
+  });
+  window.addEventListener('dragleave', () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) hideDropOverlays();
+  });
+  window.addEventListener('drop', event => {
+    event.preventDefault();
+    dragDepth = 0;
+    hideDropOverlays();
+    if (document.querySelector('dialog[open]')) return;
+    const files = [...event.dataTransfer.files];
+    if (activeTab === 'video') VideoEditor.importFiles(files);
+    else importFiles(files);
+  });
   let resizeFrame=0;new ResizeObserver(()=>{cancelAnimationFrame(resizeFrame);resizeFrame=requestAnimationFrame(()=>{renderTimeline();drawWave();positionGuide();});}).observe($('wave-scroll'));
   window.addEventListener('pagehide',()=>{pause();if(downloadUrl)URL.revokeObjectURL(downloadUrl);});
   render();status('等待导入音频');

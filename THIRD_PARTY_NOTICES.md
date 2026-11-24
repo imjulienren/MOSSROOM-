@@ -19,6 +19,13 @@ MP3 导出使用 [LAME](https://lame.sourceforge.io/) 的 JavaScript 移植版�
 
 本地字体 Silkscreen 使用 SIL Open Font License 1.1，见 [字体许可证](dist/fonts/OFL.txt)。
 
+## Mediabunny / gifenc
+
+视频解码和 MP4 导出使用 Mediabunny 1.66.3，采用 Mozilla Public License 2.0。GIF 导出使用 gifenc 1.0.3，采用 MIT 许可证。
+
+- Mediabunny [许可证](dist/vendor/mediabunny-LICENSE.txt)和[对应发布包与源码](https://registry.npmjs.org/mediabunny/-/mediabunny-1.66.3.tgz)
+- gifenc [许可证](dist/vendor/gifenc-LICENSE.txt)和[对应发布包与源码](https://registry.npmjs.org/gifenc/-/gifenc-1.0.3.tgz)
+
 ## 均衡器公式
 
 滤波与均衡器参考 [W3C Audio EQ Cookbook](https://www.w3.org/TR/audio-eq-cookbook/)。

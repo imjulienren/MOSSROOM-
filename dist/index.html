@@ -3,21 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#29251c">
-  <meta name="description" content="Mossroom Studio 本地音频剪辑与调音工具。">
+  <meta name="theme-color" content="#fbf6e8">
+  <meta name="description" content="Mossroom Studio 本地音频剪辑、调音与视频剪辑工具。">
   <title>Mossroom Studio</title>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=color-pixel">
   <script src="mixer-core.js" defer></script>
   <script src="audio-core.js" defer></script>
   <script src="vendor/signalsmith-stretch.js" defer></script>
   <script src="stretch-engine.js" defer></script>
   <script src="vendor/lamejs.iife.js" defer></script>
-  <script src="app.js" defer></script>
+  <script src="video-editor.js" defer></script>
+  <script src="app.js?v=light-pixel" defer></script>
 </head>
 <body>
 <svg class="icon-defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
   <symbol id="i-wave" viewBox="0 0 24 24"><path d="M3 10v4m4-8v12m5-16v20m5-16v12m4-8v4"/></symbol>
+  <symbol id="i-video" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="1"/><path d="m10 8 6 4-6 4Z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 7h4l2-3h6l2 3h4v13H3Z"/><circle cx="12" cy="13" r="3.5"/></symbol>
   <symbol id="i-stretch" viewBox="0 0 24 24"><path d="M3 12h18M7 8l-4 4 4 4m10-8 4 4-4 4M9 4h6M9 20h6"/></symbol>
   <symbol id="i-silence" viewBox="0 0 24 24"><path d="M3 8v8m18-8v8M7 12h10M12 3v5m-2-2h4M8 20h8"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -44,8 +47,15 @@
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
 </defs></svg>
 <div class="app-shell">
-  <header class="studio-header"><div class="studio-brand" id="studio-home" aria-label="Mossroom Studio"><svg class="brand-pixel" viewBox="0 0 28 28" aria-hidden="true"><path d="M2 12h4v12H2zM9 5h4v19H9zM16 9h4v15h-4zM23 2h4v22h-4z"/></svg><span>MOSSROOM <small>STUDIO</small></span></div><div class="header-tools"><span class="local-indicator"><i></i>本地处理</span><button id="help-btn" class="icon-button" title="快捷键" aria-label="键盘快捷键"><svg><use href="#i-keyboard"/></svg></button></div></header>
-  <div class="app-body">
+  <header class="studio-header"><div class="studio-brand" id="studio-home" aria-label="Mossroom Studio"><svg class="brand-pixel" viewBox="0 0 28 28" aria-hidden="true"><path d="M2 12h4v12H2zM9 5h4v19H9zM16 9h4v15h-4zM23 2h4v22h-4z"/></svg><span>MOSSROOM <small>STUDIO</small></span></div>
+    <nav class="studio-tabs" aria-label="工作台">
+      <div role="tablist" aria-label="剪辑类型">
+        <button type="button" id="audio-tab" role="tab" aria-controls="audio-panel" aria-selected="true"><svg aria-hidden="true"><use href="#i-wave"/></svg>音频剪辑</button>
+        <button type="button" id="video-tab" role="tab" aria-controls="video-panel" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-video"/></svg>视频剪辑</button>
+      </div>
+    </nav>
+    <div class="header-tools"><span class="local-indicator"><i></i>本地处理</span><button id="help-btn" class="icon-button" title="快捷键" aria-label="键盘快捷键"><svg><use href="#i-keyboard"/></svg></button></div></header>
+  <div class="app-body" id="audio-panel" role="tabpanel" aria-labelledby="audio-tab">
     <aside class="sidebar" aria-label="音频资料库">
       <button id="import-btn" class="import-button"><svg><use href="#i-plus"/></svg>导入音频<span>⌘ O</span></button>
       <div class="library-heading"><span>资料库</span><span id="track-count">0</span></div>
@@ -69,7 +79,7 @@
           <input type="range" id="playback-progress" min="0" max="1" step="any" value="0" aria-label="选区播放进度">
         </div>
         <div class="wave-caption"><button id="select-all" class="text-button">选择全部</button></div>
-        <div class="transport"><div class="transport-left"><button id="loop-btn" class="icon-button loop-button" title="循环播放 L" aria-label="循环播放" aria-pressed="false"><svg><use href="#i-loop"/></svg></button><span id="loop-label">循环关闭</span></div><div class="playback-controls"><button class="icon-button skip-button" id="jump-start" title="回到选区开头" aria-label="回到选区开头"><svg><use href="#i-start"/></svg></button><button class="play-button" id="play-btn" title="播放选区 Space" aria-label="播放选区"><svg><use href="#i-play"/></svg></button><button class="icon-button skip-button" id="jump-end" title="跳到选区结尾" aria-label="跳到选区结尾"><svg><use href="#i-end"/></svg></button></div><div class="transport-right"><label class="sr-only" for="speed">试听速度</label><select id="speed" title="试听速度"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2.0×</option></select><span class="playback-time" id="playback-time">00:00.000</span></div></div>
+        <div class="transport"><div class="transport-left"><button id="loop-btn" class="icon-button loop-button" title="循环播放 L" aria-label="循环播放" aria-pressed="false"><svg><use href="#i-loop"/></svg></button><span id="loop-label">循环关闭</span><label class="sr-only" for="speed">试听速度</label><select id="speed" title="试听速度"><option value="0.5">0.5×</option><option value="0.75">0.75×</option><option value="1" selected>1.0×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2.0×</option></select></div><div class="playback-controls"><button class="icon-button skip-button" id="jump-start" title="回到选区开头" aria-label="回到选区开头"><svg><use href="#i-start"/></svg></button><button class="play-button" id="play-btn" title="播放选区 Space" aria-label="播放选区"><svg><use href="#i-play"/></svg></button><button class="icon-button skip-button" id="jump-end" title="跳到选区结尾" aria-label="跳到选区结尾"><svg><use href="#i-end"/></svg></button></div><div class="transport-right"><span class="playback-time" id="playback-time">00:00.000</span></div></div>
       </section>
       <aside class="meter-card" aria-label="输出电平"><div class="meter-title">电平<span class="guide-anchor"><button type="button" class="guide-button" aria-label="电平帮助" aria-describedby="guide-meter">?</button><span class="guide-popover" id="guide-meter" role="tooltip" popover="manual"><span class="guide-copy">PEAK 是峰值，RMS 是平均能量，GR 是最大动态衰减。</span><span class="guide-copy">出现削波时可降低输出增益或打开限制器。点击削波数字可清除记录。</span></span></span></div><div class="meter-columns"><div class="meter-channel"><span>L</span><div class="meter-well"><div class="meter-fill" id="meter-left"></div></div></div><div class="meter-scale"><span>0</span><span>−12</span><span>−24</span><span>−48</span></div><div class="meter-channel"><span>R</span><div class="meter-well"><div class="meter-fill" id="meter-right"></div></div></div></div><div class="meter-readings"><div><span title="峰值电平 dBFS">PEAK</span><output id="meter-peak">−∞</output></div><div><span title="均方根电平 dBFS">RMS</span><output id="meter-rms">−∞</output></div><div><span title="最大动态增益衰减 dB">GR</span><output id="meter-gr">0.0</output></div></div><button id="clip-reset" class="clip-indicator" aria-label="复位削波指示"><i></i><span id="clip-text">无削波</span></button></aside></div>
       <section class="selection-card" aria-label="选区时间"><div class="section-label"><span class="guide-heading">剪辑选区<span class="guide-anchor"><button type="button" class="guide-button" aria-label="剪辑选区帮助" aria-describedby="guide-selection">?</button><span class="guide-popover" id="guide-selection" role="tooltip" popover="manual"><span class="guide-copy">输入秒数或分:秒可精确设定起止点。试听和淡入淡出按此范围计算，导出时也可选择完整音频。</span></span></span></span><div class="selection-actions"><button class="selection-action" id="stretch-btn" ><svg><use href="#i-stretch"/></svg>拉伸选区</button><button class="selection-action" id="silence-btn"><svg><use href="#i-silence"/></svg>插入空白</button></div></div><div class="time-fields"><label class="time-field"><span><i class="point start-point"></i>开始时间</span><input id="start-input" type="text" inputmode="decimal" value="00:00.000" spellcheck="false" aria-label="开始时间，分冒号秒，可输入小数秒"></label><span class="time-connector">—</span><label class="time-field"><span><i class="point end-point"></i>结束时间</span><input id="end-input" type="text" inputmode="decimal" value="00:00.000" spellcheck="false" aria-label="结束时间，分冒号秒，可输入小数秒"></label><div class="duration-field"><span>选区时长</span><strong id="selection-duration">0.000<span>秒</span></strong></div><button class="subtle-button" id="reset-selection" title="重置选区、增益与淡入淡出">重置</button></div></section>
@@ -107,8 +117,84 @@
       <div class="empty-state" id="empty-state"><span class="empty-wave"><svg><use href="#i-wave"/></svg></span><h2>导入音频</h2><p>选择文件或拖入此处。</p><button class="primary-button" id="empty-import"><svg><use href="#i-plus"/></svg>选择音频文件</button><small>MP3、WAV、M4A、FLAC 等浏览器支持的音频格式</small></div>
     </main>
   </div>
+  <div class="app-body" id="video-panel" role="tabpanel" aria-labelledby="video-tab" hidden>
+    <aside class="sidebar" aria-label="视频资料库">
+      <button type="button" id="video-import" class="import-button"><svg aria-hidden="true"><use href="#i-plus"/></svg>导入视频<span>⌘ O</span></button>
+      <div class="library-heading"><span>资料库</span><span id="video-track-count">0</span></div>
+      <div id="video-track-list" class="track-list"></div>
+      <template id="video-track-template">
+        <div class="track-item">
+          <button type="button" class="track-select">
+            <span class="track-icon"><svg aria-hidden="true"><use href="#i-video"/></svg></span>
+            <span class="track-copy"><span class="track-name"></span><span class="track-detail"></span></span>
+          </button>
+          <button type="button" class="track-remove"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+        </div>
+      </template>
+    </aside>
+    <main class="workspace video-workspace">
+      <div id="video-empty" class="empty-state">
+        <span class="empty-wave"><svg aria-hidden="true"><use href="#i-video"/></svg></span>
+        <h2>导入视频</h2><p>选择文件或拖入此处。</p>
+        <button type="button" class="primary-button" id="video-empty-import"><svg aria-hidden="true"><use href="#i-plus"/></svg>选择视频文件</button>
+        <small>MP4、MOV、WebM 等浏览器支持的视频格式</small>
+      </div>
+      <div class="workspace-heading" id="video-heading" hidden>
+        <div><h1 id="video-title"></h1><p id="video-meta" class="file-meta"></p></div>
+        <button type="button" id="video-export" class="primary-button export-button"><svg aria-hidden="true"><use href="#i-export"/></svg>导出视频</button>
+      </div>
+      <div id="video-editor" hidden>
+        <section class="editor-card" aria-label="视频预览">
+          <div class="editor-toolbar"><div class="wave-label"><svg aria-hidden="true"><use href="#i-video"/></svg>视频预览</div></div>
+          <div class="video-screen"><video id="video-preview" playsinline preload="auto" aria-label="视频画面"></video></div>
+          <div class="video-timeline">
+            <div class="video-time-ruler" aria-hidden="true"><span>00:00.000</span><span id="video-time-middle"></span><span id="video-time-end"></span></div>
+            <div class="video-filmstrip" id="video-filmstrip" role="group" aria-label="视频时间轴">
+              <canvas id="video-thumbnails" width="1200" height="96" aria-hidden="true"></canvas>
+              <div id="video-selection" class="video-selection">
+                <div id="video-handle-start" class="video-handle" role="slider" tabindex="0" aria-label="选区开始点"><span></span></div>
+                <div id="video-handle-end" class="video-handle" role="slider" tabindex="0" aria-label="选区结束点"><span></span></div>
+              </div>
+              <div class="video-playhead" id="video-playhead" aria-hidden="true"></div>
+            </div>
+          </div>
+          <div class="playback-scrubber"><input type="range" id="video-progress" min="0" max="1" step="any" value="0" aria-label="选区播放进度"></div>
+          <div class="transport">
+            <div class="transport-left"><button type="button" id="video-select-all" class="text-button">选择全部</button></div>
+            <div class="playback-controls">
+              <button type="button" class="icon-button skip-button" id="video-jump-start" aria-label="回到选区开头"><svg aria-hidden="true"><use href="#i-start"/></svg></button>
+              <button type="button" class="play-button" id="video-play" aria-label="播放选区"><svg aria-hidden="true"><use href="#i-play"/></svg></button>
+              <button type="button" class="icon-button skip-button" id="video-jump-end" aria-label="跳到选区结尾"><svg aria-hidden="true"><use href="#i-end"/></svg></button>
+            </div>
+            <div class="transport-right">
+              <span id="video-playback-time" class="playback-time"></span>
+              <button type="button" id="video-capture" class="subtle-button video-capture-button" title="截取当前暂停画面" disabled><svg aria-hidden="true"><use href="#i-camera"/></svg>截图</button>
+            </div>
+          </div>
+        </section>
+        <section class="selection-card" aria-label="视频剪辑选区">
+          <div class="section-label">剪辑选区</div>
+          <div class="time-fields">
+            <label class="time-field"><span><i class="point start-point"></i>开始时间</span><input id="video-start" type="text" inputmode="decimal" spellcheck="false"></label>
+            <span class="time-connector" aria-hidden="true">—</span>
+            <label class="time-field"><span><i class="point end-point"></i>结束时间</span><input id="video-end" type="text" inputmode="decimal" spellcheck="false"></label>
+            <div class="duration-field"><span>选区时长</span><strong id="video-selection-duration"></strong></div>
+          </div>
+        </section>
+      </div>
+      <footer class="workspace-footer"><span id="video-status" role="status"><span class="status-dot"></span><span>等待导入视频</span></span></footer>
+      <div class="drop-overlay" id="video-drop-overlay" hidden><div><svg aria-hidden="true"><use href="#i-import"/></svg><strong>松开，导入视频</strong></div></div>
+    </main>
+    <aside id="video-captures" class="video-captures" aria-labelledby="video-captures-title" hidden>
+      <h2 id="video-captures-title">截图暂存<span id="video-capture-hint" hidden>点击下载</span></h2>
+      <p id="video-capture-empty">暂停视频后，点击「截图」。</p>
+      <ul id="video-capture-list" class="video-capture-list"></ul>
+      <div id="video-capture-preview" class="video-capture-preview" aria-hidden="true" hidden><img alt=""></div>
+    </aside>
+  </div>
 </div>
 <input id="file-input" type="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.aiff,.aif,.webm,.opus" multiple hidden>
+<input id="video-file-input" type="file" accept="video/*,.mp4,.m4v,.mov,.webm,.mkv" multiple hidden>
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <dialog id="export-dialog" aria-labelledby="export-title"><form id="export-form"><div class="dialog-heading"><div><div class="guide-heading"><h2 id="export-title">导出音频</h2><span class="guide-anchor"><button type="button" class="guide-button" aria-label="导出音频帮助" aria-describedby="guide-export">?</button><span class="guide-popover" id="guide-export" role="tooltip" popover="manual"><span class="guide-copy">WAV 适合需要精确切点的循环素材。MP3 体积更小，可选择码率。</span><span class="guide-copy">调音会写入导出文件，原音对比和试听速度只影响试听。</span></span></span></div></div><button type="button" class="icon-button close-dialog" aria-label="关闭导出窗口"><svg><use href="#i-close"/></svg></button></div><div class="export-summary"><span class="export-file-icon"><svg><use href="#i-wave"/></svg></span><div><strong id="export-track-name"></strong><span id="export-range"></span></div></div><label class="form-label" for="export-name">文件名称</label><div class="filename-input"><input id="export-name" type="text" autofocus required maxlength="150" autocomplete="off"><span id="export-extension">.wav</span></div><label class="form-label export-scope-label" for="export-scope">导出范围</label><select class="wide-select" id="export-scope"><option value="selection">当前选区</option><option value="full">完整音频</option></select><div class="export-options"><label>格式<select id="export-format"><option value="wav">WAV</option><option value="mp3">MP3</option></select></label><label>采样率<select id="export-rate"><option value="48000">48,000 Hz</option><option value="44100">44,100 Hz</option></select></label><label id="export-wav-settings">位深<select id="export-depth"><option value="16">16 bit 通用</option><option value="24" selected>24 bit 高精度</option></select></label><label id="export-mp3-settings" hidden>码率<select id="export-bitrate"><option value="128">128 kbps</option><option value="192" selected>192 kbps</option><option value="320">320 kbps</option></select></label><label>声道<select id="export-channels"><option value="original">保留原声道</option><option value="mono">单声道</option></select></label></div><div id="export-progress" class="export-progress" role="status" hidden>正在准备音频…</div><div class="dialog-footer"><span id="export-size">预计 —</span><a id="download-again" class="text-button" hidden>再次下载</a><button type="button" class="subtle-button close-dialog" id="export-cancel">取消</button><button type="submit" class="primary-button" id="export-confirm"><svg><use href="#i-export"/></svg><span id="export-confirm-label">导出 WAV</span></button></div></form></dialog>
 <dialog id="stretch-dialog" aria-labelledby="stretch-title"><form id="stretch-form">
@@ -128,7 +214,41 @@
 
   <div class="dialog-footer"><button type="button" class="subtle-button close-dialog">取消</button><button type="submit" class="primary-button" id="silence-confirm">插入空白</button></div>
 </form></dialog>
-<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><h2 id="help-title">键盘快捷键</h2></div><button type="button" class="icon-button close-dialog" aria-label="关闭快捷键窗口"><svg><use href="#i-close"/></svg></button></div><div class="shortcut-list"><div><span>播放 / 暂停选区</span><kbd>Space</kbd></div><div><span>循环播放</span><kbd>L</kbd></div><div><span>直接拉伸选区</span><span><kbd>⌥</kbd> 拖动右侧手柄</span></div><div><span>在当前位置设置开始 / 结束点</span><span><kbd>[</kbd> <kbd>]</kbd></span></div><div><span>播放位置前移 / 后移 0.1 秒</span><span><kbd>←</kbd> <kbd>→</kbd></span></div><div><span>选区边界精细移动 / 快速移动</span><span><kbd>← →</kbd> / <kbd>⇧ ← →</kbd></span></div><div><span>选择全部</span><span><kbd>⌘</kbd> <kbd>A</kbd></span></div><div><span>撤销 / 重做</span><span><kbd>⌘ Z</kbd> / <kbd>⇧ ⌘ Z</kbd></span></div><div><span>导入 / 导出音频</span><span><kbd>⌘ O</kbd> / <kbd>⌘ E</kbd></span></div></div><p class="help-note">也支持 Windows 的 Ctrl 快捷键。所有音频仅在本机内存中处理，关闭页面后请重新导入。</p></dialog>
+<dialog id="help-dialog" aria-labelledby="help-title"><div class="dialog-heading"><div><h2 id="help-title">键盘快捷键</h2></div><button type="button" class="icon-button close-dialog" aria-label="关闭快捷键窗口"><svg><use href="#i-close"/></svg></button></div><div class="shortcut-list" id="audio-shortcuts"><div><span>播放 / 暂停选区</span><kbd>Space</kbd></div><div><span>循环播放</span><kbd>L</kbd></div><div><span>直接拉伸选区</span><span><kbd>⌥</kbd> 拖动右侧手柄</span></div><div><span>在当前位置设置开始 / 结束点</span><span><kbd>[</kbd> <kbd>]</kbd></span></div><div><span>播放位置前移 / 后移 0.1 秒</span><span><kbd>←</kbd> <kbd>→</kbd></span></div><div><span>选区边界精细移动 / 快速移动</span><span><kbd>← →</kbd> / <kbd>⇧ ← →</kbd></span></div><div><span>选择全部</span><span><kbd>⌘</kbd> <kbd>A</kbd></span></div><div><span>撤销 / 重做</span><span><kbd>⌘ Z</kbd> / <kbd>⇧ ⌘ Z</kbd></span></div><div><span>导入 / 导出音频</span><span><kbd>⌘ O</kbd> / <kbd>⌘ E</kbd></span></div></div><div class="shortcut-list" id="video-shortcuts" hidden>
+  <div><span>播放 / 暂停选区</span><kbd>Space</kbd></div>
+  <div><span>在当前位置设置开始 / 结束点</span><span><kbd>[</kbd> <kbd>]</kbd></span></div>
+  <div><span>播放位置前移 / 后移 0.1 秒</span><span><kbd>←</kbd> <kbd>→</kbd></span></div>
+  <div><span>选区边界精细移动 / 快速移动</span><span><kbd>← →</kbd> / <kbd>⇧ ← →</kbd></span></div>
+  <div><span>选择全部</span><span><kbd>⌘</kbd> <kbd>A</kbd></span></div>
+  <div><span>导入 / 导出视频</span><span><kbd>⌘ O</kbd> / <kbd>⌘ E</kbd></span></div>
+</div>
+<p class="help-note">也支持 Windows 的 Ctrl 快捷键。文件在本机处理，关闭页面后请重新导入。</p></dialog>
 
+<dialog id="video-export-dialog" aria-labelledby="video-export-title">
+  <form id="video-export-form">
+    <div class="dialog-heading">
+      <h2 id="video-export-title">导出视频</h2>
+      <button type="button" class="icon-button" id="video-export-close" aria-label="关闭导出窗口"><svg aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="export-summary">
+      <span class="export-file-icon"><svg aria-hidden="true"><use href="#i-video"/></svg></span>
+      <div><strong id="video-export-name"></strong><span id="video-export-range"></span></div>
+    </div>
+    <label class="form-label" for="video-export-format">格式</label>
+    <select class="wide-select" id="video-export-format" autofocus><option value="mp4">MP4</option><option value="gif">GIF 动图</option></select>
+    <div class="export-options" id="video-gif-options" hidden>
+      <label>画面长边<select id="video-gif-edge"><option value="320">320 px</option><option value="480" selected>480 px</option><option value="720">720 px</option></select></label>
+      <label>帧率<select id="video-gif-fps"><option value="8">8 帧/秒</option><option value="12" selected>12 帧/秒</option><option value="15">15 帧/秒</option><option value="20">20 帧/秒</option><option value="25">25 帧/秒</option></select></label>
+    </div>
+    <p id="video-export-info" class="video-export-note"></p>
+    <div class="video-export-size"><output id="video-size-estimate" aria-label="预计文件大小" aria-live="polite"></output><output id="video-size-actual" aria-label="实际文件大小" aria-live="polite" hidden></output></div>
+    <div class="timeline-progress" id="video-export-progress" role="status" hidden><span id="video-export-message"></span><progress id="video-export-bar" max="1" value="0"></progress></div>
+    <div class="dialog-footer video-export-actions">
+      <a id="video-download-again" class="text-button" hidden>再次下载</a>
+      <button type="button" id="video-export-cancel" class="subtle-button">取消</button>
+      <button type="submit" id="video-export-confirm" class="primary-button"><svg aria-hidden="true"><use href="#i-export"/></svg><span id="video-export-label">导出 MP4</span></button>
+    </div>
+  </form>
+</dialog>
 </body>
 </html>
