@@ -101,7 +101,7 @@ function createPaletteMapper(palette) {
   };
 }
 
-async function makeGif(track, {start, end, edge, fps, gifColors}, estimating) {
+async function makeGif(track, {start, end, edge, fps}, estimating) {
   const duration = end - start;
   const durationTicks = Math.max(2, Math.round(duration * 100));
   let frameCount = Math.max(1, Math.ceil(duration * fps));
@@ -109,7 +109,7 @@ async function makeGif(track, {start, end, edge, fps, gifColors}, estimating) {
   if (frameCount > gifFrameLimit) throw Error('GIF 帧数过多，请缩短选区或降低帧率。');
   if (!await track.canDecode()) throw Error('当前浏览器无法解码此视频以生成 GIF。');
 
-  const {GIFEncoder, quantize, applyPalette} = await import('./vendor/gifenc.mjs');
+  const {GIFEncoder, quantize} = await import('./vendor/gifenc.mjs');
   const width = await track.getDisplayWidth();
   const height = await track.getDisplayHeight();
   const scale = Math.min(1, edge / Math.max(width, height));
@@ -117,15 +117,15 @@ async function makeGif(track, {start, end, edge, fps, gifColors}, estimating) {
   const h = Math.max(1, Math.round(height * scale));
   const sink = new CanvasSink(track, {width: w, height: h, fit: 'contain', poolSize: 2});
   const blankCanvas = new OffscreenCanvas(w, h);
-  const samples = gifColors === 'shared' ? await sampleGifColors(track, w, h, frameCount, start, fps) : null;
-  const sharedPalette = samples?.length ? quantize(samples, 256) : null;
-  const mapWithSharedPalette = sharedPalette && createPaletteMapper(sharedPalette);
+  const samples = await sampleGifColors(track, w, h, frameCount, start, fps);
+  const sharedPalette = samples.length ? quantize(samples, 256) : [[0, 0, 0]];
+  const mapWithSharedPalette = createPaletteMapper(sharedPalette);
 
   function writeFrame(gif, frame, index) {
     const canvas = frame?.canvas || blankCanvas;
     const rgba = canvas.getContext('2d').getImageData(0, 0, w, h).data;
-    const palette = sharedPalette ? (index === 0 ? sharedPalette : undefined) : quantize(rgba, 256);
-    const pixels = mapWithSharedPalette ? mapWithSharedPalette(rgba) : applyPalette(rgba, palette);
+    const palette = index === 0 ? sharedPalette : undefined;
+    const pixels = mapWithSharedPalette(rgba);
     // Quantize cumulative time so the 10 ms GIF delay unit doesn't skew the clip's speed.
     const elapsed = Math.round(index / fps * 100);
     const next = index === frameCount - 1 ? durationTicks : Math.round((index + 1) / fps * 100);
