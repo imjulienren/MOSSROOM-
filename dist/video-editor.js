@@ -15,6 +15,8 @@ const VideoEditor = (() => {
   const progress = $('progress');
   const dialog = $('export-dialog');
   const seekKeys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
+  const captureMaxEdge = 1280;
+  const captureQuality = 0.82;
   let clip = null;
   let drag = null;
   let scrub = null;
@@ -284,13 +286,15 @@ const VideoEditor = (() => {
     updateCaptureButton();
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = preview.videoWidth;
-      canvas.height = preview.videoHeight;
-      canvas.getContext('2d').drawImage(preview, 0, 0);
-      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+      const {videoWidth, videoHeight} = preview;
+      const scale = Math.min(1, captureMaxEdge / Math.max(videoWidth, videoHeight));
+      canvas.width = Math.max(1, Math.round(videoWidth * scale));
+      canvas.height = Math.max(1, Math.round(videoHeight * scale));
+      canvas.getContext('2d', {alpha: false}).drawImage(preview, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', captureQuality));
       if (!blob) throw Error('截图生成失败');
       if (!clips.includes(video)) return;
-      video.captures.unshift({url: URL.createObjectURL(blob), time});
+      video.captures.unshift({url: URL.createObjectURL(blob), time, extension: blob.type === 'image/jpeg' ? 'jpg' : 'png'});
       if (clip === video) {
         renderCaptures();
         status('已暂存 ' + time + ' 的截图');
@@ -313,11 +317,11 @@ const VideoEditor = (() => {
     captureList.scrollTop = captureList.scrollLeft = 0;
   }
 
-  function makeCaptureItem({url, time}) {
+  function makeCaptureItem({url, time, extension}) {
     const {name} = clip;
     const link = document.createElement('a');
     link.href = url;
-    link.download = name.replace(/[<>:"/\\|?*]/g, '_') + '_截图_' + time.replace(':', '-') + '.png';
+    link.download = name.replace(/[<>:"/\\|?*]/g, '_') + '_截图_' + time.replace(':', '-') + '.' + extension;
     link.setAttribute('aria-label', '下载 ' + name + ' 在 ' + time + ' 的截图');
     const image = new Image();
     image.src = url;
