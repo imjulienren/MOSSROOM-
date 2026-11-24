@@ -131,7 +131,7 @@
     const x=current.cursor/current.buffer.duration*wave.clientWidth+wave.offsetLeft;
     if(x>scroll.scrollLeft+scroll.clientWidth-30||x<scroll.scrollLeft+10)scroll.scrollLeft=Math.max(0,x-scroll.clientWidth*.2);
   }
-  function setPlaybackUI() { $('play-btn').replaceChildren(icon(playing?'pause':'play'));$('play-btn').setAttribute('aria-label',playing?'暂停':'播放选区');$('play-btn').title=(playing?'暂停':'播放选区')+' Space'; }
+  function setPlaybackUI() { $('play-btn').replaceChildren(icon(playing?'pause':'play'));$('play-btn').setAttribute('aria-label',playing?'暂停':'播放选区');$('play-btn').title=(playing?'暂停':'播放选区'); }
   function getPlaybackPosition() {
     if(!playing||!current||!processed)return current?current.cursor:0;
     const elapsed=sourceOffset+(context().currentTime-sourceTime)*sourceRate;
@@ -174,7 +174,7 @@
   function setTime(endpoint){if(!current)return;const input=$(endpoint+'-input'),value=parseTime(input.value);if(!Number.isFinite(value)){toast('请输入有效时间，例如 01:23.500，或直接输入秒数。');render();return;}if(value<0||value>current.buffer.duration||(endpoint==='start'?value>=current.end:value<=current.start)){toast(endpoint==='start'?'开始时间需要早于结束时间，并位于音频范围内。':'结束时间需要晚于开始时间，并位于音频范围内。');render();return;}edit(t=>{t[endpoint]=value;t.cursor=endpoint==='start'?value:t.cursor;});status('选区已更新');}
   function pointerTime(event){const rect=$('wave-area').getBoundingClientRect();return clamp((event.clientX-rect.left)/rect.width,0,1)*current.buffer.duration;}
   $('wave-area').addEventListener('pointerdown',event=>{
-    if(!current||event.button!==0)return;event.preventDefault();pause();const endpoint=event.target.closest('.selection-handle');if(endpoint)endpoint.focus();else $('wave-area').focus();
+    if(!current||event.button!==0)return;event.preventDefault();pause();const endpoint=event.target.closest('.selection-handle');if(endpoint)endpoint.focus();
     drag={pointer:event.pointerId,endpoint:endpoint?endpoint.id.replace('handle-',''):null,anchor:pointerTime(event),x:event.clientX,before:snapshot(current),moved:false};$('wave-area').setPointerCapture(event.pointerId);
   });
   $('wave-area').addEventListener('pointermove',event=>{
