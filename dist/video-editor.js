@@ -14,6 +14,9 @@ const VideoEditor = (() => {
   const filmstrip = $('filmstrip');
   const progress = $('progress');
   const dialog = $('export-dialog');
+  const exportWorkerUrl = new URL('video-export-worker.mjs', document.baseURI);
+  const scriptVersion = document.currentScript && new URL(document.currentScript.src).searchParams.get('v');
+  if (scriptVersion) exportWorkerUrl.searchParams.set('v', scriptVersion);
   const seekKeys = ['ArrowLeft', 'ArrowRight', 'Home', 'End'];
   const captureMaxEdge = 1280;
   const captureQuality = 0.82;
@@ -467,6 +470,7 @@ const VideoEditor = (() => {
       format: $('export-format').value,
       edge: Number($('gif-edge').value),
       fps: Number($('gif-fps').value),
+      gifColors: $('gif-colors').value,
       start: clip.start,
       end: clip.end
     };
@@ -475,7 +479,7 @@ const VideoEditor = (() => {
   function runWorker(kind, settings, onMessage) {
     let worker;
     try {
-      worker = new Worker(new URL('video-export-worker.mjs', document.baseURI), {type: 'module'});
+      worker = new Worker(exportWorkerUrl, {type: 'module'});
       worker.onmessage = ({data}) => {
         if (data.progress === undefined) worker.terminate();
         onMessage(data);
@@ -508,7 +512,7 @@ const VideoEditor = (() => {
     $('export-extension').textContent = '.' + settings.format;
     $('gif-options').hidden = !isGif;
     $('export-info').textContent = isGif
-      ? '静音循环播放。根据片段抽帧估算大小。'
+      ? (settings.gifColors === 'shared' ? '静音循环播放。共用调色板，颜色细节可能减少。' : '静音循环播放。逐帧配色，保留更多颜色细节。')
       : '保留画面比例和声音。根据目标码率估算大小。';
     $('export-label').textContent = isGif ? '导出 GIF' : '导出 MP4';
     $('export-confirm').disabled = true;
@@ -542,7 +546,7 @@ const VideoEditor = (() => {
   }
 
   function setExportBusy(busy) {
-    for (const id of ['export-name', 'export-format', 'gif-edge', 'gif-fps', 'export-confirm']) $(id).disabled = busy;
+    for (const id of ['export-name', 'export-format', 'gif-edge', 'gif-fps', 'gif-colors', 'export-confirm']) $(id).disabled = busy;
     $('export-cancel').textContent = busy ? '取消导出' : '取消';
   }
 
@@ -709,7 +713,7 @@ const VideoEditor = (() => {
   $('export').onclick = openExport;
   $('export-form').onsubmit = exportVideo;
   $('export-name').oninput = event => event.currentTarget.setCustomValidity('');
-  for (const id of ['export-format', 'gif-edge', 'gif-fps']) $(id).onchange = refreshEstimate;
+  for (const id of ['export-format', 'gif-edge', 'gif-fps', 'gif-colors']) $(id).onchange = refreshEstimate;
   $('export-close').onclick = $('export-cancel').onclick = closeExport;
   dialog.addEventListener('cancel', event => {
     if (!exportJob) return;

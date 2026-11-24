@@ -51,7 +51,57 @@ function reportProgress(value) {
   self.postMessage({progress: value});
 }
 
-async function makeGif(track, {start, end, edge, fps}, estimating) {
+async function sampleGifColors(track, width, height, frameCount, start, fps) {
+  const scale = Math.min(1, 96 / Math.max(width, height));
+  const w = Math.max(1, Math.round(width * scale));
+  const h = Math.max(1, Math.round(height * scale));
+  const sink = new CanvasSink(track, {width: w, height: h, fit: 'contain', poolSize: 1});
+  const count = Math.min(5, frameCount);
+  const colors = new Uint8Array(count * w * h * 4);
+  let length = 0;
+  for (let i = 0; i < count; i++) {
+    const frameIndex = Math.round(i * (frameCount - 1) / Math.max(1, count - 1));
+    const frame = await sink.getCanvas(start + frameIndex / fps);
+    if (!frame) continue;
+    const rgba = frame.canvas.getContext('2d').getImageData(0, 0, w, h).data;
+    colors.set(rgba, length);
+    length += rgba.length;
+  }
+  return colors.subarray(0, length);
+}
+
+function createPaletteMapper(palette) {
+  // Cache the nearest palette index for each RGB565 color across all frames.
+  const cache = new Uint16Array(1 << 16);
+  return rgba => {
+    const pixels = new Uint8Array(rgba.length / 4);
+    for (let i = 0, offset = 0; i < pixels.length; i++, offset += 4) {
+      const r5 = rgba[offset] >> 3;
+      const g6 = rgba[offset + 1] >> 2;
+      const b5 = rgba[offset + 2] >> 3;
+      const key = (r5 << 11) | (g6 << 5) | b5;
+      let index = cache[key];
+      if (index === 0) {
+        // Use the center of each bucket so estimates and exports map colors consistently.
+        const r = r5 * 8 + 4, g = g6 * 4 + 2, b = b5 * 8 + 4;
+        let nearest = Infinity;
+        for (let j = 0; j < palette.length; j++) {
+          const [pr, pg, pb] = palette[j];
+          const distance = (r - pr) ** 2 + (g - pg) ** 2 + (b - pb) ** 2;
+          if (distance < nearest) {
+            nearest = distance;
+            index = j + 1;
+          }
+        }
+        cache[key] = index;
+      }
+      pixels[i] = index - 1;
+    }
+    return pixels;
+  };
+}
+
+async function makeGif(track, {start, end, edge, fps, gifColors}, estimating) {
   const duration = end - start;
   const durationTicks = Math.max(2, Math.round(duration * 100));
   let frameCount = Math.max(1, Math.ceil(duration * fps));
@@ -67,12 +117,15 @@ async function makeGif(track, {start, end, edge, fps}, estimating) {
   const h = Math.max(1, Math.round(height * scale));
   const sink = new CanvasSink(track, {width: w, height: h, fit: 'contain', poolSize: 2});
   const blankCanvas = new OffscreenCanvas(w, h);
+  const samples = gifColors === 'shared' ? await sampleGifColors(track, w, h, frameCount, start, fps) : null;
+  const sharedPalette = samples?.length ? quantize(samples, 256) : null;
+  const mapWithSharedPalette = sharedPalette && createPaletteMapper(sharedPalette);
 
   function writeFrame(gif, frame, index) {
     const canvas = frame?.canvas || blankCanvas;
     const rgba = canvas.getContext('2d').getImageData(0, 0, w, h).data;
-    const palette = quantize(rgba, 256);
-    const pixels = applyPalette(rgba, palette);
+    const palette = sharedPalette ? (index === 0 ? sharedPalette : undefined) : quantize(rgba, 256);
+    const pixels = mapWithSharedPalette ? mapWithSharedPalette(rgba) : applyPalette(rgba, palette);
     // Quantize cumulative time so the 10 ms GIF delay unit doesn't skew the clip's speed.
     const elapsed = Math.round(index / fps * 100);
     const next = index === frameCount - 1 ? durationTicks : Math.round((index + 1) / fps * 100);
